@@ -13,16 +13,17 @@ cherry_picker_ui <- function() {
           condition = "output.preloadedMode == false",
           shiny::fileInput("file", "Upload CSV"),
           shiny::checkboxInput("header", "Header", TRUE),
-          shiny::actionButton("open_filter_popup", "Apply Filters to Data Set"),
-          shiny::textOutput("selection_counter")
+          shiny::actionButton("open_filter_popup", "Apply Filters to Data Set")
         ),
         shiny::conditionalPanel(
           condition = "output.preloadedMode == true",
-          shiny::helpText("Using preloaded dataset"),
-          shiny::textOutput("selection_counter")
+          shiny::helpText("Using preloaded dataset")
         ),
+        # selection counter always visible
+        shiny::uiOutput("selection_counter"),
         shiny::selectInput("xvar", "X-axis variable", choices = NULL),
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
+        shiny::actionButton("clear_filters", "Clear Filters"),
         shiny::actionButton("clear", "Clear Highlights"),
         shiny::actionButton("viz_without", "Visualize Without Selected Points"),
         shiny::downloadButton("download_selected", "Download Selected Data")

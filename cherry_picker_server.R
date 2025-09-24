@@ -125,6 +125,13 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       filtered_data(df)
     })
     
+    # ====== Clear Filters button ======
+    shiny::observeEvent(input$clear_filters, {
+      df <- uploaded_data()
+      shiny::req(df)
+      filtered_data(df)
+    })
+    
     # ====== App’s main dataset ======
     raw_data <- shiny::reactive({
       shiny::req(filtered_data())
@@ -218,24 +225,30 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     )
     
     # ====== Selection counter ======
-    output$selection_counter <- shiny::renderUI({
-      df <- raw_data()
-      total <- nrow(df)
-      selected <- length(highlight_ids())
-      pct <- if (total > 0) (selected / total) * 100 else 0
-      
-      color <- if (pct < 1) {
-        "green"
-      } else if (pct < 5) {
-        "orange"
-      } else {
-        "red"
-      }
-      
-      shiny::tags$p(
-        paste0("Selected: ", selected, " / ", total, " (", sprintf("%.2f", pct), "%)"),
-        style = paste0("font-weight: bold; color: ", color, ";")
-      )
+    shiny::observe({
+      raw_data()  # depend on dataset
+      highlight_ids()  # depend on selections
+      shiny::isolate({
+        df <- raw_data()
+        total <- nrow(df)
+        selected <- length(highlight_ids())
+        pct <- if (total > 0) (selected / total) * 100 else 0
+        
+        color <- if (pct < 1) {
+          "green"
+        } else if (pct < 5) {
+          "orange"
+        } else {
+          "red"
+        }
+        
+        output$selection_counter <- shiny::renderUI({
+          shiny::tags$p(
+            paste0("Selected: ", selected, " / ", total, " (", sprintf("%.2f", pct), "%)"),
+            style = paste0("font-weight: bold; color: ", color, ";")
+          )
+        })
+      })
     })
     
     # ====== Footer ======
