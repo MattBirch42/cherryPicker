@@ -6,29 +6,55 @@
 #' @keywords internal
 cherry_picker_ui <- function() {
   shiny::fluidPage(
+    theme = shinythemes::shinytheme("flatly"), 
     shiny::titlePanel("Cherry Picker"),
     shiny::sidebarLayout(
       shiny::sidebarPanel(
         shiny::conditionalPanel(
           condition = "output.preloadedMode == false",
-          shiny::fileInput("file", "Upload CSV"),
-          shiny::checkboxInput("header", "Header", TRUE),
-          shiny::actionButton("do_filter", "Apply Filters to Data Set"),
-          shiny::actionButton("clear_filters", "Clear Filters")
+          shiny::fluidRow(
+            shiny::column(
+              width = 8,
+              shiny::fileInput("file", "Upload csv or parquet file")
+            ),
+            shiny::column(
+              width = 4,
+              shiny::checkboxInput("header", "Data has Header", TRUE)
+            )
+          ),
+          shiny::fluidRow(
+            shiny::column(
+              width = 6,
+              shiny::actionButton("do_filter", HTML("Optional:<br>Filter Data"), width = "100%")
+            ),
+            shiny::column(
+              width = 6,
+              shiny::actionButton("clear_filters",HTML("Optional:<br>Clear Filters"), width = "100%")
+            )
+          )
         ),
         shiny::conditionalPanel(
           condition = "output.preloadedMode == true",
           shiny::helpText("Using preloaded dataset"),
-          shiny::actionButton("do_filter", "Apply Filters to Data Set"),
-          shiny::actionButton("clear_filters", "Clear Filters")
+          shiny::actionButton("do_filter", HTML("Optional:<br>Filter Data")),
+          shiny::actionButton("clear_filters", HTML("Optional:<br>Clear Filters"))
         ),
         # --- Selection counter always shown on main tab ---
-        shiny::uiOutput("selection_counter"),
+        shiny::div(
+          style = "margin: 20px 0;",
+          shiny::uiOutput("selection_counter")
+        ),
         shiny::selectInput("xvar", "X-axis variable", choices = NULL),
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
-        shiny::actionButton("clear", "Clear Highlights"),
-        shiny::actionButton("viz_without", "Visualize Dataset Without Selected Points"),
-        shiny::downloadButton("download_selected", "Download Selected Data")
+        shiny::actionButton("clear", "Clear Selected Points"),
+        shiny::div(
+          style = "margin-top: 5px;",
+          shiny::actionButton("viz_without",  HTML("Visualize Dataset<br>Without Selected Points"))
+        ),
+        shiny::div(
+          style = "margin-top: 20px;",
+          shiny::downloadButton("download_selected", "Download Selected Data")
+        )
       ),
       shiny::mainPanel(
         plotly::plotlyOutput("scatter"),

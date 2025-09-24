@@ -46,3 +46,4 @@ fake_data <- data.frame(
   }
 
 write.csv(fake_data,"fake_data1.csv", row.names = F)
+arrow::write_parquet(fake_data,"fake_data1.parquet")

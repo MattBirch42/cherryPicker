@@ -21,19 +21,28 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     # ====== File upload ======
     shiny::observeEvent(input$file, {
       if (is.null(preloaded_data)) {
-        df <- utils::read.csv(input$file$datapath, header = input$header, stringsAsFactors = FALSE)
+        ext <- tools::file_ext(input$file$name)
+        
+        if (tolower(ext) == "csv") {
+          df <- utils::read.csv(input$file$datapath, header = input$header, stringsAsFactors = FALSE)
+        } else if (tolower(ext) == "parquet") {
+          df <- arrow::read_parquet(input$file$datapath) %>% as.data.frame()
+        } else {
+          shiny::showNotification("Unsupported file type. Please upload a CSV or Parquet file.", type = "error")
+          return(NULL)
+        }
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
         uploaded_data(df)
         
-        if (nrow(df) > 200) {
+        if (nrow(df) > 20000) {
           shiny::showModal(
             shiny::modalDialog(
               title = "Large Data Warning",
               shiny::p(
                 paste0("Your dataset has ", nrow(df), " rows and ", ncol(df),
                        " columns. Larger datasets may slow down the app. ",
-                       "Do you want to filter first?")
+                       "Do you want to filter the data first?")
               ),
               footer = shiny::tagList(
                 shiny::actionButton("proceed_no_filter", "Proceed without filtering"),
@@ -239,14 +248,28 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     # ====== Footer ======
     output$app_footer <- shiny::renderUI({
       if (is.null(preloaded_data)) {
-        shiny::tags$p(
-          "Cherry Picker (Shiny App mode) · © 2025 Matt Birch · github.com/MattBirch42/coolstuff",
-          style = "font-size: 0.8em; color: gray;"
+        shiny::tags$div(
+          style = "margin-top:20px;",
+          shiny::tags$p(
+            "Cherry Picker (Powered by cherryPicker Package) · © 2025 Matt Birch",
+            style = "font-size: 0.7em; color: gray; margin: 0;"
+          ),
+          shiny::tags$p(
+            "github.com/MattBirch42/cherryPicker",
+            style = "font-size: 0.7em; color: gray; margin: 0;"
+          )
         )
       } else {
-        shiny::tags$p(
-          "Cherry Picker (R Function mode) · © 2025 Matt Birch · github.com/MattBirch42/coolstuff",
-          style = "font-size: 0.8em; color: gray;"
+        shiny::tags$div(
+          style = "margin-top:20px;",
+          shiny::tags$p(
+            "Cherry Picker · © 2025 Matt Birch",
+            style = "font-size: 0.7em; color: gray; margin: 0;"
+          ),
+          shiny::tags$p(
+            "github.com/MattBirch42/cherryPicker",
+            style = "font-size: 0.7em; color: gray; margin: 0;"
+          )
         )
       }
     })
