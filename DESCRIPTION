@@ -1,0 +1,34 @@
+Package: cherryPicker
+Type: Package
+Title: Interactive Data Filtering and Point Selection with Shiny and Plotly
+Version: 0.1.0
+Authors@R: 
+    person("Matt", "Birch", 
+           email = "your_email@example.com", 
+           role = c("aut", "cre"))
+Description: This wil eventually be a package full of cool data tools. 
+    Right now it is really all about the Cherry Picker app. It provides 
+    an interactive Shiny application for exploring datasets. Users can 
+    upload or preload CSV/Parquet files, filter data through a 
+    dynamic UI, highlight and remove points on scatterplots with Plotly, 
+    and download selected subsets. Includes modular server/UI components 
+    for embedding Cherry Picker inside other Shiny apps.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports: 
+    shiny,
+    plotly,
+    dplyr,
+    utils,
+    stats,
+    methods,
+    tools,
+    readr,
+    arrow
+Suggests:
+    testthat,
+    roxygen2,
+    devtools
