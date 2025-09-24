@@ -96,6 +96,23 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar)
     })
     
+    # download selected data
+    output$download_selected <- shiny::downloadHandler(
+      filename = function() {
+        "cherry_picker_output.csv"
+      },
+      content = function(file) {
+        df <- raw_data()
+        selected <- highlight_ids()
+        if (length(selected) > 0) {
+          selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
+        } else {
+          selected_df <- df[0, , drop = FALSE] # empty if none selected
+        }
+        utils::write.csv(selected_df, file, row.names = FALSE)
+      }
+    )
+    
     # footer
     output$app_footer <- shiny::renderUI({
       if (is.null(preloaded_data)) {
