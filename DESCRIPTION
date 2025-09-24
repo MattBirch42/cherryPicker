@@ -27,7 +27,9 @@ Imports:
     methods,
     tools,
     readr,
-    arrow
+    arrow,
+    magrittr,
+    lubridate
 Suggests:
     testthat,
     roxygen2,
