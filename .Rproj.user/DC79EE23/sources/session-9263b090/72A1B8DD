@@ -1,9 +1,9 @@
 {
     "id": "72A1B8DD",
-    "path": null,
-    "project_path": null,
+    "path": "~/cherryPicker/make_marginal_scatter.R",
+    "project_path": "make_marginal_scatter.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1239853436",
     "contents": "",
     "dirty": false,
     "created": 1758684201956.0,
@@ -12,14 +12,16 @@
     "properties": {
         "tempName": "Untitled2",
         "source_window_id": "",
-        "Source": "Source"
+        "Source": "Source",
+        "cursorPosition": "89,0",
+        "scrollLine": "68"
     },
     "folds": "",
-    "lastKnownWriteTime": 2019026605015302146,
-    "encoding": "",
+    "lastKnownWriteTime": 1758684898,
+    "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1758684201956,
+    "last_content_update": 1758684898149,
     "read_only": false,
     "read_only_alternatives": []
 }
