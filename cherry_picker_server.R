@@ -64,9 +64,15 @@ cherry_picker_server <- function(preloaded_data = NULL) {
           title = "Filter Data",
           shiny::uiOutput("filter_ui"),
           footer = shiny::tagList(
-            shiny::uiOutput("filter_counter", inline = TRUE),
-            shiny::actionButton("apply_filters", "Apply Filters"),
-            shiny::actionButton("cancel_filters", "Cancel Filters")
+            shiny::div(
+              style = "flex-grow: 1; text-align: left;",
+              shiny::uiOutput("filter_counter", inline = TRUE)
+            ),
+            shiny::div(
+              style = "flex-shrink: 0;",
+              shiny::actionButton("apply_filters", "Apply Filters"),
+              shiny::actionButton("cancel_filters", "Cancel Filters")
+            )
           ),
           size = "l",
           easyClose = FALSE
@@ -148,6 +154,39 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     shiny::observeEvent(input$clear, { highlight_ids(c()) })
     
+    # ====== Visualize without selected points ======
+    shiny::observeEvent(input$viz_without, {
+      df <- raw_data()
+      removed <- highlight_ids()
+      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
+      
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Scatter Plot Without Selected Points",
+          shiny::selectInput("modal_xvar", "X-axis variable",
+                             choices = setdiff(names(filtered_df), ".row_uid")),
+          shiny::selectInput("modal_yvar", "Y-axis variable",
+                             choices = setdiff(names(filtered_df), ".row_uid")),
+          plotly::plotlyOutput("scatter_without"),
+          easyClose = TRUE,
+          size = "l"
+        )
+      )
+      
+      shiny::updateSelectInput(session, "modal_xvar",
+                               selected = setdiff(names(filtered_df), ".row_uid")[1])
+      shiny::updateSelectInput(session, "modal_yvar",
+                               selected = setdiff(names(filtered_df), ".row_uid")[2])
+    })
+    
+    output$scatter_without <- plotly::renderPlotly({
+      shiny::req(input$modal_xvar, input$modal_yvar)
+      df <- raw_data()
+      removed <- highlight_ids()
+      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
+      make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar)
+    })
+    
     # ====== Selection counter ======
     output$selection_counter <- shiny::renderUI({
       df <- raw_data()
@@ -169,7 +208,20 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       )
     })
     
-    # ====== Download ======
+    # ====== Filter row counter (popup only) ======
+    output$filter_counter <- shiny::renderUI({
+      if (!is.null(uploaded_data())) {
+        total <- nrow(uploaded_data())
+        preview <- apply_filters(uploaded_data(), input)
+        current <- nrow(preview)
+        shiny::tags$p(
+          paste0("Filtered rows: ", current, " / ", total),
+          style = "margin: 0; font-weight: bold;"
+        )
+      }
+    })
+    
+    # ====== Download selected rows ======
     output$download_selected <- shiny::downloadHandler(
       filename = function() "cherry_picker_output.csv",
       content = function(file) {
@@ -184,7 +236,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       }
     )
     
-    # footer
+    # ====== Footer ======
     output$app_footer <- shiny::renderUI({
       if (is.null(preloaded_data)) {
         shiny::tags$p(

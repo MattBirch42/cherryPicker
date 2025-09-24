@@ -20,11 +20,12 @@ cherry_picker_ui <- function() {
           condition = "output.preloadedMode == true",
           shiny::helpText("Using preloaded dataset")
         ),
-        # selection counter always visible
+        # selection counter
         shiny::uiOutput("selection_counter"),
         shiny::selectInput("xvar", "X-axis variable", choices = NULL),
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
         shiny::actionButton("clear", "Clear Highlights"),
+        shiny::actionButton("viz_without", "Visualize Without Selected Points"),
         shiny::downloadButton("download_selected", "Download Selected Data")
       ),
       shiny::mainPanel(
