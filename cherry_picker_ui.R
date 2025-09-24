@@ -22,7 +22,9 @@ cherry_picker_ui <- function() {
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
         shiny::actionButton("clear", "Clear Highlights"),
         shiny::actionButton("viz_without", "Visualize Without Selected Points"),
-        shiny::downloadButton("download_selected", "Download Selected Data")
+        shiny::downloadButton("download_selected", "Download Selected Data"),
+        shiny::br(), shiny::br(),
+        shiny::uiOutput("selection_counter")
       ),
       shiny::mainPanel(
         plotly::plotlyOutput("scatter"),
