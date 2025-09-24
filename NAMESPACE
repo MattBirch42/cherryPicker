@@ -3,3 +3,5 @@
 export("%>%")
 export(cherry_picker)
 importFrom(magrittr,"%>%")
+importFrom(stats,na.omit)
+importFrom(utils,head)

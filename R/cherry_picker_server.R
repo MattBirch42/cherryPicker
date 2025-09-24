@@ -121,7 +121,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       }
     })
     
-    # app’s dataset
+   
     raw_data <- shiny::reactive({
       shiny::req(filtered_data())
       filtered_data()
@@ -251,7 +251,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         shiny::tags$div(
           style = "margin-top:20px;",
           shiny::tags$p(
-            "Cherry Picker (Powered by cherryPicker Package) · © 2025 Matt Birch",
+            "Cherry Picker (Powered by cherryPicker Package) © 2025 Matt Birch",
             style = "font-size: 0.7em; color: gray; margin: 0;"
           ),
           shiny::tags$p(
@@ -263,7 +263,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         shiny::tags$div(
           style = "margin-top:20px;",
           shiny::tags$p(
-            "Cherry Picker · © 2025 Matt Birch",
+            "Cherry Picker © 2025 Matt Birch",
             style = "font-size: 0.7em; color: gray; margin: 0;"
           ),
           shiny::tags$p(

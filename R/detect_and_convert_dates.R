@@ -7,7 +7,8 @@
 #' @param df A data frame.
 #' @param session Optional Shiny session, used for displaying warnings if mixed
 #'   formats are detected.
-#'
+#' @importFrom utils head
+#' @importFrom stats na.omit
 #' @return A data frame with date-like columns converted to `Date`.
 #' @keywords internal
 detect_and_convert_dates <- function(df, session = NULL) {
