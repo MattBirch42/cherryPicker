@@ -1,37 +1,36 @@
-#' Apply Filters to Data
+#' Cherry Picker UI
 #'
-#' Apply user-selected filters from Shiny UI to a dataset.
-#' NA values are always retained unless a filter would exclude them
-#' (for numeric/date ranges or set filters).
+#' Internal function that builds the UI for the Cherry Picker app.
 #'
-#' @param df Data frame.
-#' @param input Shiny input object.
-#' @return Filtered data frame.
+#' @return A Shiny UI definition.
 #' @keywords internal
-apply_filters <- function(df, input) {
-  out <- df
-  for (col in names(df)) {
-    if (col == ".row_uid") next
-    id <- paste0("filter_", col)
-    v <- df[[col]]
-    if (!is.null(input[[id]])) {
-      if (inherits(v, "Date")) {
-        dr <- input[[id]]
-        if (length(dr) == 2 && all(!is.na(dr))) {
-          out <- out[(is.na(out[[col]]) | (out[[col]] >= dr[1] & out[[col]] <= dr[2])), , drop = FALSE]
-        }
-      } else if (is.numeric(v)) {
-        rng <- input[[id]]
-        if (length(rng) == 2 && all(is.finite(rng))) {
-          out <- out[(is.na(out[[col]]) | (out[[col]] >= rng[1] & out[[col]] <= rng[2])), , drop = FALSE]
-        }
-      } else {
-        vals <- input[[id]]
-        if (!is.null(vals)) {
-          out <- out[(is.na(out[[col]]) | out[[col]] %in% vals), , drop = FALSE]
-        }
-      }
-    }
-  }
-  out
+cherry_picker_ui <- function() {
+  shiny::fluidPage(
+    shiny::titlePanel("Cherry Picker"),
+    shiny::sidebarLayout(
+      shiny::sidebarPanel(
+        shiny::conditionalPanel(
+          condition = "output.preloadedMode == false",
+          shiny::fileInput("file", "Upload CSV"),
+          shiny::checkboxInput("header", "Header", TRUE),
+          shiny::actionButton("open_filter_popup", "Apply Filters to Data Set"),
+          shiny::textOutput("selection_counter")
+        ),
+        shiny::conditionalPanel(
+          condition = "output.preloadedMode == true",
+          shiny::helpText("Using preloaded dataset"),
+          shiny::textOutput("selection_counter")
+        ),
+        shiny::selectInput("xvar", "X-axis variable", choices = NULL),
+        shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
+        shiny::actionButton("clear", "Clear Highlights"),
+        shiny::actionButton("viz_without", "Visualize Without Selected Points"),
+        shiny::downloadButton("download_selected", "Download Selected Data")
+      ),
+      shiny::mainPanel(
+        plotly::plotlyOutput("scatter"),
+        shiny::uiOutput("app_footer")
+      )
+    )
+  )
 }
