@@ -18,7 +18,9 @@ cherry_picker_ui <- function() {
         ),
         shiny::conditionalPanel(
           condition = "output.preloadedMode == true",
-          shiny::helpText("Using preloaded dataset")
+          shiny::helpText("Using preloaded dataset"),
+          shiny::actionButton("do_filter", "Apply Filters to Data Set"),
+          shiny::actionButton("clear_filters", "Clear Filters")
         ),
         # --- Selection counter always shown on main tab ---
         shiny::uiOutput("selection_counter"),
