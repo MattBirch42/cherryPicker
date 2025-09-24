@@ -9,16 +9,16 @@
 #' @keywords internal
 cherry_picker_server <- function(preloaded_data = NULL) {
   function(input, output, session) {
-    # whether we are in preloaded mode (no upload shown)
+    # whether we are in preloaded mode
     output$preloadedMode <- shiny::reactive({ !is.null(preloaded_data) })
     shiny::outputOptions(output, "preloadedMode", suspendWhenHidden = FALSE)
     
     # stores
-    uploaded_data  <- shiny::reactiveVal(NULL)  # uploaded or preloaded DF
-    filtered_data  <- shiny::reactiveVal(NULL)  # DF after optional filtering
-    filter_mode    <- shiny::reactiveVal(FALSE) # TRUE only if filter applied
+    uploaded_data  <- shiny::reactiveVal(NULL)
+    filtered_data  <- shiny::reactiveVal(NULL)
+    filter_mode    <- shiny::reactiveVal(FALSE)
     
-    # ====== File upload / preload handling ======
+    # ====== File upload ======
     shiny::observeEvent(input$file, {
       if (is.null(preloaded_data)) {
         df <- utils::read.csv(input$file$datapath, header = input$header, stringsAsFactors = FALSE)
@@ -26,7 +26,6 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         df <- detect_and_convert_dates(df, session)
         uploaded_data(df)
         
-        # Large-data gate
         if (nrow(df) > 200) {
           shiny::showModal(
             shiny::modalDialog(
@@ -50,38 +49,22 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       }
     })
     
-    # Proceed without filtering
     shiny::observeEvent(input$proceed_no_filter, {
       shiny::removeModal()
       filter_mode(FALSE)
       filtered_data(uploaded_data())
     })
     
-    # User opts into filtering (from upload warning or Apply Filters button)
     shiny::observeEvent(input$do_filter, {
       shiny::removeModal()
       filter_mode(TRUE)
       df <- uploaded_data()
-      
       shiny::showModal(
         shiny::modalDialog(
           title = "Filter Data",
-          shiny::tagList(
-            shiny::uiOutput("filter_ui"),
-            # sticky footer styling
-            shiny::tags$head(
-              shiny::tags$style(HTML("
-                .modal-footer {
-                  position: sticky;
-                  bottom: 0;
-                  background: white;
-                  padding: 10px;
-                  border-top: 1px solid #ccc;
-                }
-              "))
-            )
-          ),
+          shiny::uiOutput("filter_ui"),
           footer = shiny::tagList(
+            shiny::uiOutput("filter_counter", inline = TRUE),
             shiny::actionButton("apply_filters", "Apply Filters"),
             shiny::actionButton("cancel_filters", "Cancel Filters")
           ),
@@ -89,13 +72,11 @@ cherry_picker_server <- function(preloaded_data = NULL) {
           easyClose = FALSE
         )
       )
-      
       output$filter_ui <- shiny::renderUI({
         build_filter_ui(df)
       })
     })
     
-    # Apply Filters inside popup
     shiny::observeEvent(input$apply_filters, {
       shiny::removeModal()
       df <- apply_filters(uploaded_data(), input)
@@ -103,20 +84,17 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       filtered_data(df)
     })
     
-    # Cancel Filters inside popup
     shiny::observeEvent(input$cancel_filters, {
       shiny::removeModal()
       filter_mode(FALSE)
       filtered_data(uploaded_data())
     })
     
-    # Clear Filters button on main UI
     shiny::observeEvent(input$clear_filters, {
       filter_mode(FALSE)
       filtered_data(uploaded_data())
     })
     
-    # Preloaded data path
     shiny::observe({
       if (!is.null(preloaded_data)) {
         df <- as.data.frame(preloaded_data)
@@ -128,13 +106,13 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       }
     })
     
-    # App’s main dataset
+    # app’s dataset
     raw_data <- shiny::reactive({
       shiny::req(filtered_data())
       filtered_data()
     })
     
-    # ====== Update variable choices ======
+    # update variable choices
     shiny::observe({
       df <- raw_data()
       choices <- setdiff(names(df), ".row_uid")
@@ -170,56 +148,6 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     shiny::observeEvent(input$clear, { highlight_ids(c()) })
     
-    # ====== Visualize without selected points ======
-    shiny::observeEvent(input$viz_without, {
-      df <- raw_data()
-      removed <- highlight_ids()
-      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
-      
-      shiny::showModal(
-        shiny::modalDialog(
-          title = "Scatter Plot Without Selected Points",
-          shiny::selectInput("modal_xvar", "X-axis variable",
-                             choices = setdiff(names(filtered_df), ".row_uid")),
-          shiny::selectInput("modal_yvar", "Y-axis variable",
-                             choices = setdiff(names(filtered_df), ".row_uid")),
-          plotly::plotlyOutput("scatter_without"),
-          easyClose = TRUE,
-          size = "l"
-        )
-      )
-      
-      shiny::updateSelectInput(session, "modal_xvar",
-                               selected = setdiff(names(filtered_df), ".row_uid")[1])
-      shiny::updateSelectInput(session, "modal_yvar",
-                               selected = setdiff(names(filtered_df), ".row_uid")[2])
-    })
-    
-    output$scatter_without <- plotly::renderPlotly({
-      shiny::req(input$modal_xvar, input$modal_yvar)
-      df <- raw_data()
-      removed <- highlight_ids()
-      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
-      make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar)
-    })
-    
-    # ====== Download selected rows ======
-    output$download_selected <- shiny::downloadHandler(
-      filename = function() {
-        "cherry_picker_output.csv"
-      },
-      content = function(file) {
-        df <- raw_data()
-        selected <- highlight_ids()
-        if (length(selected) > 0) {
-          selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
-        } else {
-          selected_df <- df[0, , drop = FALSE]
-        }
-        utils::write.csv(selected_df, file, row.names = FALSE)
-      }
-    )
-    
     # ====== Selection counter ======
     output$selection_counter <- shiny::renderUI({
       df <- raw_data()
@@ -241,7 +169,22 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       )
     })
     
-    # ====== Footer ======
+    # ====== Download ======
+    output$download_selected <- shiny::downloadHandler(
+      filename = function() "cherry_picker_output.csv",
+      content = function(file) {
+        df <- raw_data()
+        selected <- highlight_ids()
+        if (length(selected) > 0) {
+          selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
+        } else {
+          selected_df <- df[0, , drop = FALSE]
+        }
+        utils::write.csv(selected_df, file, row.names = FALSE)
+      }
+    )
+    
+    # footer
     output$app_footer <- shiny::renderUI({
       if (is.null(preloaded_data)) {
         shiny::tags$p(
