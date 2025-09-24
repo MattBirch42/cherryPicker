@@ -1,16 +1,21 @@
 # Ignore everything by default
 *
 
+# But don’t ignore directories (so we can whitelist inside them)
+!*/
+
 # ---- Keep source files ----
 !*.R
 !*.qmd
-!*/app.R
-!*/www/**
-
+!app.R
+!www/**
+ 
 # ---- Keep project meta files ----
 !README.md
 !LICENSE
 !DESCRIPTION
 !NAMESPACE
 !man/**
+
+# ---- Ignore RStudio project junk ----
 .Rproj.user
