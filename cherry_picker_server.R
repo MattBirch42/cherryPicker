@@ -15,28 +15,26 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     # stores
     uploaded_data  <- shiny::reactiveVal(NULL)  # uploaded or preloaded DF
-    filtered_data  <- shiny::reactiveVal(NULL)  # DF after filtering
+    filtered_data  <- shiny::reactiveVal(NULL)  # DF after optional filtering
+    filter_mode    <- shiny::reactiveVal(FALSE) # TRUE only if filter applied
     
     # ====== File upload / preload handling ======
     shiny::observeEvent(input$file, {
       if (is.null(preloaded_data)) {
-        df <- utils::read.csv(input$file$datapath,
-                              header = input$header,
-                              stringsAsFactors = FALSE)
+        df <- utils::read.csv(input$file$datapath, header = input$header, stringsAsFactors = FALSE)
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
         uploaded_data(df)
         
+        # Large-data gate
         if (nrow(df) > 200) {
           shiny::showModal(
             shiny::modalDialog(
               title = "Large Data Warning",
               shiny::p(
-                paste0(
-                  "Your dataset has ", nrow(df), " rows and ", ncol(df),
-                  " columns. Larger datasets may slow down the app. ",
-                  "Do you want to filter before continuing?"
-                )
+                paste0("Your dataset has ", nrow(df), " rows and ", ncol(df),
+                       " columns. Larger datasets may slow down the app. ",
+                       "Do you want to filter first?")
               ),
               footer = shiny::tagList(
                 shiny::actionButton("proceed_no_filter", "Proceed without filtering"),
@@ -46,9 +44,76 @@ cherry_picker_server <- function(preloaded_data = NULL) {
             )
           )
         } else {
-          filtered_data(df)  # small dataset goes straight in
+          filter_mode(FALSE)
+          filtered_data(df)
         }
       }
+    })
+    
+    # Proceed without filtering
+    shiny::observeEvent(input$proceed_no_filter, {
+      shiny::removeModal()
+      filter_mode(FALSE)
+      filtered_data(uploaded_data())
+    })
+    
+    # User opts into filtering (from upload warning or Apply Filters button)
+    shiny::observeEvent(input$do_filter, {
+      shiny::removeModal()
+      filter_mode(TRUE)
+      df <- uploaded_data()
+      
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Filter Data",
+          shiny::tagList(
+            shiny::uiOutput("filter_ui"),
+            # sticky footer styling
+            shiny::tags$head(
+              shiny::tags$style(HTML("
+                .modal-footer {
+                  position: sticky;
+                  bottom: 0;
+                  background: white;
+                  padding: 10px;
+                  border-top: 1px solid #ccc;
+                }
+              "))
+            )
+          ),
+          footer = shiny::tagList(
+            shiny::actionButton("apply_filters", "Apply Filters"),
+            shiny::actionButton("cancel_filters", "Cancel Filters")
+          ),
+          size = "l",
+          easyClose = FALSE
+        )
+      )
+      
+      output$filter_ui <- shiny::renderUI({
+        build_filter_ui(df)
+      })
+    })
+    
+    # Apply Filters inside popup
+    shiny::observeEvent(input$apply_filters, {
+      shiny::removeModal()
+      df <- apply_filters(uploaded_data(), input)
+      filter_mode(TRUE)
+      filtered_data(df)
+    })
+    
+    # Cancel Filters inside popup
+    shiny::observeEvent(input$cancel_filters, {
+      shiny::removeModal()
+      filter_mode(FALSE)
+      filtered_data(uploaded_data())
+    })
+    
+    # Clear Filters button on main UI
+    shiny::observeEvent(input$clear_filters, {
+      filter_mode(FALSE)
+      filtered_data(uploaded_data())
     })
     
     # Preloaded data path
@@ -58,81 +123,12 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
         uploaded_data(df)
+        filter_mode(FALSE)
         filtered_data(df)
       }
     })
     
-    # ====== Large data modal actions ======
-    shiny::observeEvent(input$proceed_no_filter, {
-      shiny::removeModal()
-      df <- uploaded_data()
-      filtered_data(df)
-    })
-    
-    shiny::observeEvent(input$do_filter, {
-      shiny::removeModal()
-      df <- uploaded_data()
-      shiny::showModal(
-        shiny::modalDialog(
-          title = "Filter Data",
-          shiny::uiOutput("filter_ui"),
-          footer = shiny::tagList(
-            shiny::actionButton("apply_filters", "Apply Filters"),
-            shiny::actionButton("cancel_filters", "Cancel Filters")
-          ),
-          size = "l",
-          easyClose = FALSE
-        )
-      )
-      output$filter_ui <- shiny::renderUI({
-        build_filter_ui(df)
-      })
-    })
-    
-    # ====== Manual "Apply Filters" button in main app ======
-    shiny::observeEvent(input$open_filter_popup, {
-      df <- uploaded_data()
-      shiny::req(df)
-      shiny::showModal(
-        shiny::modalDialog(
-          title = "Filter Data",
-          shiny::uiOutput("filter_ui"),
-          footer = shiny::tagList(
-            shiny::actionButton("apply_filters", "Apply Filters"),
-            shiny::actionButton("cancel_filters", "Cancel Filters")
-          ),
-          size = "l",
-          easyClose = FALSE
-        )
-      )
-      output$filter_ui <- shiny::renderUI({
-        build_filter_ui(df)
-      })
-    })
-    
-    # ====== Apply / Cancel inside popup ======
-    shiny::observeEvent(input$apply_filters, {
-      shiny::removeModal()
-      df <- uploaded_data()
-      df_filtered <- apply_filters(df, input)
-      df_filtered$.row_uid <- df$.row_uid[df$.row_uid %in% df_filtered$.row_uid]
-      filtered_data(df_filtered)
-    })
-    
-    shiny::observeEvent(input$cancel_filters, {
-      shiny::removeModal()
-      df <- uploaded_data()
-      filtered_data(df)
-    })
-    
-    # ====== Clear Filters button ======
-    shiny::observeEvent(input$clear_filters, {
-      df <- uploaded_data()
-      shiny::req(df)
-      filtered_data(df)
-    })
-    
-    # ====== App’s main dataset ======
+    # App’s main dataset
     raw_data <- shiny::reactive({
       shiny::req(filtered_data())
       filtered_data()
@@ -225,30 +221,24 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     )
     
     # ====== Selection counter ======
-    shiny::observe({
-      raw_data()  # depend on dataset
-      highlight_ids()  # depend on selections
-      shiny::isolate({
-        df <- raw_data()
-        total <- nrow(df)
-        selected <- length(highlight_ids())
-        pct <- if (total > 0) (selected / total) * 100 else 0
-        
-        color <- if (pct < 1) {
-          "green"
-        } else if (pct < 5) {
-          "orange"
-        } else {
-          "red"
-        }
-        
-        output$selection_counter <- shiny::renderUI({
-          shiny::tags$p(
-            paste0("Selected: ", selected, " / ", total, " (", sprintf("%.2f", pct), "%)"),
-            style = paste0("font-weight: bold; color: ", color, ";")
-          )
-        })
-      })
+    output$selection_counter <- shiny::renderUI({
+      df <- raw_data()
+      total <- nrow(df)
+      selected <- length(highlight_ids())
+      pct <- if (total > 0) (selected / total) * 100 else 0
+      
+      color <- if (pct < 1) {
+        "green"
+      } else if (pct < 5) {
+        "orange"
+      } else {
+        "red"
+      }
+      
+      shiny::tags$p(
+        paste0("Selected: ", selected, " / ", total, " (", sprintf("%.2f", pct), "%)"),
+        style = paste0("font-weight: bold; color: ", color, ";")
+      )
     })
     
     # ====== Footer ======
