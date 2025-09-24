@@ -9,7 +9,7 @@ set.seed(42)
 fake_data <- data.frame(
   row_index = seq(1,n,1),
   date = seq.Date(end_date - days(n - 1),end_date,1)) %>%
-  mutate(cycle_var = 50 + 30*sin(as.numeric(date)/200) + rnorm(n,2,2),
+  mutate(cycle_var = 50 + 30*sin(as.numeric(date)/20) + rnorm(n,2,2),
          noise = rnorm(n,35,4),
          odd_days = case_when(day(date) %% 2 == 0 ~ 0,
                               TRUE ~ 1),
@@ -21,7 +21,7 @@ fake_data <- data.frame(
     dist = (as.numeric(date) - mid)^2,
     smile = {
       dist_scaled <- dist / max(dist)   
-      -70 + (50 - (-70)) * dist_scaled  
+      -70 + (50 - (-70)) * dist_scaled
     }
   ) %>%
   select(-mid, -dist) %>%

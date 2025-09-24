@@ -20,7 +20,8 @@ cherry_picker_ui <- function() {
         ),
         shiny::selectInput("xvar", "X-axis variable", choices = NULL),
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
-        shiny::actionButton("clear", "Clear Highlights")
+        shiny::actionButton("clear", "Clear Highlights"),
+        shiny::actionButton("viz_without", "Visualize Without Selected Points")
       ),
       shiny::mainPanel(
         plotly::plotlyOutput("scatter"),

@@ -29,8 +29,12 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     shiny::observe({
       df <- raw_data()
       choices <- setdiff(names(df), ".row_uid")
-      shiny::updateSelectInput(session, "xvar", choices = choices, selected = choices[1])
-      shiny::updateSelectInput(session, "yvar", choices = choices, selected = choices[min(2, length(choices))])
+      if (length(choices) >= 2) {
+        shiny::updateSelectInput(session, "xvar", choices = choices, selected = choices[1])
+        shiny::updateSelectInput(session, "yvar", choices = choices, selected = choices[2])
+      } else if (length(choices) == 1) {
+        shiny::updateSelectInput(session, "xvar", choices = choices, selected = choices[1])
+      }
     })
     
     # persistent highlights
@@ -60,6 +64,37 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     # clear button
     shiny::observeEvent(input$clear, { highlight_ids(c()) })
+    
+    # visualize without selected points (popup modal)
+    shiny::observeEvent(input$viz_without, {
+      df <- raw_data()
+      removed <- highlight_ids()
+      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
+      
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Scatter Plot Without Selected Points",
+          shiny::selectInput("modal_xvar", "X-axis variable", choices = setdiff(names(filtered_df), ".row_uid")),
+          shiny::selectInput("modal_yvar", "Y-axis variable", choices = setdiff(names(filtered_df), ".row_uid")),
+          plotly::plotlyOutput("scatter_without"),
+          easyClose = TRUE,
+          size = "l"
+        )
+      )
+      
+      # default modal selections
+      shiny::updateSelectInput(session, "modal_xvar", selected = setdiff(names(filtered_df), ".row_uid")[1])
+      shiny::updateSelectInput(session, "modal_yvar", selected = setdiff(names(filtered_df), ".row_uid")[2])
+    })
+    
+    # render scatter in modal
+    output$scatter_without <- plotly::renderPlotly({
+      shiny::req(input$modal_xvar, input$modal_yvar)
+      df <- raw_data()
+      removed <- highlight_ids()
+      filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
+      make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar)
+    })
     
     # footer
     output$app_footer <- shiny::renderUI({
