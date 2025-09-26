@@ -6,7 +6,8 @@
 #' @keywords internal
 cherry_picker_ui <- function() {
   shiny::fluidPage(
-    theme = shinythemes::shinytheme("flatly"), 
+    
+    theme = shinythemes::shinytheme("yeti"), 
     shiny::titlePanel("Cherry Picker"),
     shiny::sidebarLayout(
       shiny::sidebarPanel(
