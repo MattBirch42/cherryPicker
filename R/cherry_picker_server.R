@@ -152,9 +152,11 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     shiny::observeEvent(plotly::event_data("plotly_click", source = "scatterplot"), {
       ed <- plotly::event_data("plotly_click", source = "scatterplot")
       if (!is.null(ed) && !is.null(ed$customdata)) {
-        highlight_ids(union(highlight_ids(), ed$customdata))
+        ids <- unlist(ed$customdata)   # works for scatter clicks (single) or bar clicks (many)
+        highlight_ids(union(highlight_ids(), ids))
       }
     })
+    
     
     shiny::observeEvent(plotly::event_data("plotly_selected", source = "scatterplot"), {
       ed <- plotly::event_data("plotly_selected", source = "scatterplot")

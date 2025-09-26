@@ -47,20 +47,53 @@ make_marginal_scatter <- function(df,
     }
   }
   
-  # Histograms
+  xbins <- cut(plot_df[[xvar]], breaks = nbins_x, include.lowest = TRUE)
+  xhist <- plot_df %>%
+    dplyr::mutate(bin = xbins) %>%
+    dplyr::group_by(bin) %>%
+    dplyr::summarise(
+      count  = dplyr::n(),
+      ids    = list(.row_uid),
+      center = mean(.data[[xvar]], na.rm = TRUE),
+      .groups = "drop"
+    )
+  
   top_hist <- plotly::plot_ly(
-    plot_df, x = ~.data[[xvar]],
-    type = "histogram", nbinsx = nbins_x,
-    marker = list(color = "lightgray", line = list(color = "darkgray", width = 1))
+    data = xhist,
+    x = ~center,
+    y = ~count,
+    type = "bar",
+    customdata = ~ids,              # carry row IDs
+    source = "scatterplot",         # unify with scatter for click events
+    marker = list(color = "lightgray",
+                  line = list(color = "darkgray", width = 1))
   ) %>% plotly::layout(
     xaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE),
     yaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE)
   )
   
+
+  ybins <- cut(plot_df[[yvar]], breaks = nbins_y, include.lowest = TRUE)
+  yhist <- plot_df %>%
+    dplyr::mutate(bin = ybins) %>%
+    dplyr::group_by(bin) %>%
+    dplyr::summarise(
+      count  = dplyr::n(),
+      ids    = list(.row_uid),
+      center = mean(.data[[yvar]], na.rm = TRUE),
+      .groups = "drop"
+    )
+  
   right_hist <- plotly::plot_ly(
-    plot_df, y = ~.data[[yvar]],
-    type = "histogram", nbinsy = nbins_y,
-    marker = list(color = "lightgray", line = list(color = "darkgray", width = 1))
+    data = yhist,
+    x = ~count,
+    y = ~center,
+    type = "bar",
+    orientation = "h",              # horizontal bars
+    customdata = ~ids,              # carry row IDs
+    source = "scatterplot",         # unify with scatter for click events
+    marker = list(color = "lightgray",
+                  line = list(color = "darkgray", width = 1))
   ) %>% plotly::layout(
     xaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE),
     yaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE)
