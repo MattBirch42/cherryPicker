@@ -101,28 +101,41 @@ make_marginal_scatter <- function(df,
   
   # Combine
   p <- plotly::subplot(
-    top_hist, plotly::plotly_empty(),
-    scatter, right_hist,
+    top_hist, plotly::plotly_empty(type = "scatter", mode = "markers"),
+    scatter,  right_hist,
     nrows = 2, shareX = TRUE, shareY = TRUE,
     widths = c(0.8, 0.2), heights = c(0.2, 0.8),
     which_layout = "merge"
-  ) %>% plotly::layout(
-    showlegend = FALSE,
-    dragmode = "zoom",
-    xaxis = list(
-      title = xvar,
-      showline = TRUE, zeroline = FALSE,
-      showgrid = TRUE, ticks = "outside",
-      showticklabels = TRUE
-    ),
-    yaxis2 = list(
-      title = yvar,
-      showline = TRUE, zeroline = FALSE,
-      showgrid = TRUE, ticks = "outside",
-      showticklabels = TRUE
+  ) %>%
+    plotly::layout(
+      showlegend = FALSE,
+      dragmode = "zoom",   # default is click/zoom, not lasso
+      xaxis = list(
+        title = xvar,
+        showline = TRUE, zeroline = FALSE,
+        showgrid = TRUE, ticks = "outside",
+        showticklabels = TRUE
+      ),
+      yaxis2 = list(
+        title = yvar,
+        showline = TRUE, zeroline = FALSE,
+        showgrid = TRUE, ticks = "outside",
+        showticklabels = TRUE
+      )
+    ) %>%
+    plotly::config(
+      modeBarButtons = list(
+        list("zoom2d", "pan2d"),             # zoom & pan
+        list("lasso2d", "select2d"),         # selection tools (now obvious)
+        list("resetScale2d", "autoScale2d")  # reset/auto scale
+      ),
+      displaylogo = FALSE                    # hide plotly logo
     )
-  ) %>% plotly::config(modeBarButtonsToAdd = c("lasso2d", "select2d"))
   
   p$x$source <- "scatterplot"
+  p <- p %>%
+    plotly::event_register("plotly_click") %>%
+    plotly::event_register("plotly_selected")
+  
   p
 }
