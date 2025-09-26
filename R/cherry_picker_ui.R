@@ -46,6 +46,8 @@ cherry_picker_ui <- function() {
         ),
         shiny::selectInput("xvar", "X-axis variable", choices = NULL),
         shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
+        shiny::sliderInput("x_bins", "X histogram bins:", min = 5, max = 100, value = 30, step = 1),
+        shiny::sliderInput("y_bins", "Y histogram bins:", min = 5, max = 100, value = 30, step = 1),
         shiny::actionButton("clear", "Clear Selected Points"),
         shiny::div(
           style = "margin-top: 5px;",

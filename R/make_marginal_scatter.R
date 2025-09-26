@@ -12,7 +12,13 @@
 #'
 #' @return A plotly object with scatter and histograms.
 #' @keywords internal
-make_marginal_scatter <- function(df, xvar, yvar, highlight_ids = NULL, remove_ids = NULL) {
+make_marginal_scatter <- function(df, 
+                                  xvar, 
+                                  yvar,
+                                  nbins_x = 30,
+                                  nbins_y = 30, 
+                                  highlight_ids = NULL, 
+                                  remove_ids = NULL) {
   plot_df <- df
   if (!is.null(remove_ids) && length(remove_ids) > 0) {
     plot_df <- plot_df %>% dplyr::filter(!.row_uid %in% remove_ids)
@@ -44,7 +50,7 @@ make_marginal_scatter <- function(df, xvar, yvar, highlight_ids = NULL, remove_i
   # Histograms
   top_hist <- plotly::plot_ly(
     plot_df, x = ~.data[[xvar]],
-    type = "histogram", nbinsx = 30,
+    type = "histogram", nbinsx = nbins_x,
     marker = list(color = "lightgray", line = list(color = "darkgray", width = 1))
   ) %>% plotly::layout(
     xaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE),
@@ -53,7 +59,7 @@ make_marginal_scatter <- function(df, xvar, yvar, highlight_ids = NULL, remove_i
   
   right_hist <- plotly::plot_ly(
     plot_df, y = ~.data[[yvar]],
-    type = "histogram", nbinsy = 30,
+    type = "histogram", nbinsy = nbins_y,
     marker = list(color = "lightgray", line = list(color = "darkgray", width = 1))
   ) %>% plotly::layout(
     xaxis = list(showticklabels = FALSE, title = "", showgrid = FALSE, zeroline = FALSE),

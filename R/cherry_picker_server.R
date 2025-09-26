@@ -144,7 +144,9 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     output$scatter <- plotly::renderPlotly({
       shiny::req(input$xvar, input$yvar)
-      make_marginal_scatter(raw_data(), input$xvar, input$yvar, highlight_ids())
+      make_marginal_scatter(raw_data(), input$xvar, input$yvar,
+                            nbins_x = input$x_bins,
+                            nbins_y = input$y_bins, highlight_ids())
     })
     
     shiny::observeEvent(plotly::event_data("plotly_click", source = "scatterplot"), {
@@ -193,7 +195,9 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       df <- raw_data()
       removed <- highlight_ids()
       filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
-      make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar)
+      make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar,
+                            nbins_x = input$x_bins,
+                            nbins_y = input$y_bins)
     })
     
     # ====== Selection counter ======
