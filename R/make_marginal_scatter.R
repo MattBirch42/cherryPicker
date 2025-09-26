@@ -75,7 +75,7 @@ make_marginal_scatter <- function(df,
     which_layout = "merge"
   ) %>% plotly::layout(
     showlegend = FALSE,
-    dragmode = "lasso",
+    dragmode = "zoom",
     xaxis = list(
       title = xvar,
       showline = TRUE, zeroline = FALSE,
