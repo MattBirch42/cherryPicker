@@ -4,7 +4,15 @@
 \alias{make_marginal_scatter}
 \title{Marginal Scatter Plot with Histograms}
 \usage{
-make_marginal_scatter(df, xvar, yvar, highlight_ids = NULL, remove_ids = NULL)
+make_marginal_scatter(
+  df,
+  xvar,
+  yvar,
+  nbins_x = 30,
+  nbins_y = 30,
+  highlight_ids = NULL,
+  remove_ids = NULL
+)
 }
 \arguments{
 \item{df}{Data frame containing the data to plot.}

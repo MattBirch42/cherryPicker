@@ -4,6 +4,7 @@
 #'
 #' @return A Shiny UI definition.
 #' @keywords internal
+#' @import shinyBS
 cherry_picker_ui <- function() {
   shiny::fluidPage(
     theme = shinythemes::shinytheme("yeti"), 
