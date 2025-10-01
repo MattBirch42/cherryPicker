@@ -38,23 +38,16 @@ cherry_picker_ui <- function() {
                   shiny::checkboxInput("header", "Data has Header", TRUE)
                 )
               ),
-              shiny::fluidRow(
-                shiny::column(
-                  width = 6,
-                  shiny::actionButton("do_filter", shiny::HTML("Optional:<br>Filter Data"), width = "100%")
-                ),
-                shiny::column(
-                  width = 6,
-                  shiny::actionButton("clear_filters", shiny::HTML("Optional:<br>Clear Filters"), width = "100%")
-                )
-              )
+              # <-- stack buttons vertically instead of side-by-side
+              shiny::actionButton("do_filter", shiny::HTML("Optional:<br>Filter Data"), width = "100%"),
+              shiny::actionButton("clear_filters", shiny::HTML("Optional:<br>Clear Filters"), width = "100%")
             ),
             # Preloaded == true
             shiny::conditionalPanel(
               condition = "output.preloadedMode == true",
               shiny::helpText("Using preloaded dataset"),
-              shiny::actionButton("do_filter", shiny::HTML("Optional:<br>Filter Data")),
-              shiny::actionButton("clear_filters", shiny::HTML("Optional:<br>Clear Filters"))
+              shiny::actionButton("do_filter", shiny::HTML("Optional:<br>Filter Data"), width = "100%"),
+              shiny::actionButton("clear_filters", shiny::HTML("Optional:<br>Clear Filters"), width = "100%")
             ),
             style = "primary"
           ),
