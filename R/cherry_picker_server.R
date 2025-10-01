@@ -9,6 +9,11 @@
 #' @keywords internal
 cherry_picker_server <- function(preloaded_data = NULL) {
   function(input, output, session) {
+    
+    if (!exists("cherry_picker_export_list", envir = .GlobalEnv)) {
+      assign("cherry_picker_export_list", list(), envir = .GlobalEnv)
+    }
+    
     # whether we are in preloaded mode
     output$preloadedMode <- shiny::reactive({ !is.null(preloaded_data) })
     shiny::outputOptions(output, "preloadedMode", suspendWhenHidden = FALSE)
@@ -250,6 +255,53 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         utils::write.csv(selected_df, file, row.names = FALSE)
       }
     )
+    
+    # ====== Export to R ======
+    shiny::observeEvent(input$export_to_r, {
+      df <- raw_data()
+      selected <- highlight_ids()
+      if (length(selected) > 0) {
+        selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
+      } else {
+        selected_df <- df[0, , drop = FALSE]
+      }
+      
+      # Show modal to collect comment
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Add comment or description",
+          shiny::textAreaInput(
+            "export_comment",
+            "Comment",
+            "",
+            width = "100%",
+            rows = 3,
+            placeholder = "Enter an optional comment for this export"
+          ),
+          footer = shiny::tagList(
+            shiny::modalButton("Cancel"),
+            shiny::actionButton("confirm_export_to_r", "Export")
+          ),
+          easyClose = TRUE
+        )
+      )
+      # Handle confirm button
+      shiny::observeEvent(input$confirm_export_to_r, {
+        shiny::removeModal()
+        comment <- substr(input$export_comment, 1, 256) # enforce max length
+        export_entry <- list(
+          data = selected_df,
+          comment = comment
+        )
+        
+        # Append to global list
+        cherry_picker_export_list <- get("cherry_picker_export_list", envir = .GlobalEnv)
+        cherry_picker_export_list[[length(cherry_picker_export_list) + 1]] <- export_entry
+        assign("cherry_picker_export_list", cherry_picker_export_list, envir = .GlobalEnv)
+        
+        shiny::showNotification("Export added to R session", type = "message")
+      }, ignoreInit = TRUE, once = TRUE)
+    })
     
     # ====== Footer ======
     output$app_footer <- shiny::renderUI({
