@@ -1,7 +1,7 @@
 Package: cherryPicker
 Type: Package
 Title: Interactive Data Filtering and Point Selection with Shiny and Plotly
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person("Matt", "Birch", 
            email = "your_email@example.com", 
@@ -22,6 +22,7 @@ RoxygenNote: 7.3.3
 Imports: 
     shiny,
     shinythemes,
+    shinyBS,
     plotly,
     dplyr,
     utils,
