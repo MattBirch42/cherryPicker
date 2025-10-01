@@ -7,6 +7,7 @@
 #'
 #' @return A Shiny server function.
 #' @keywords internal
+#' 
 cherry_picker_server <- function(preloaded_data = NULL) {
   function(input, output, session) {
     
@@ -133,16 +134,48 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     })
     
     # update variable choices
+    # Track most recent user selections
+    last_xvar <- shiny::reactiveVal(NULL)
+    last_yvar <- shiny::reactiveVal(NULL)
+    
+    # Update when user changes dropdowns
+    shiny::observeEvent(input$xvar, {
+      last_xvar(input$xvar)
+    })
+    shiny::observeEvent(input$yvar, {
+      last_yvar(input$yvar)
+    })
+    
+    # Update choices but preserve selections if still valid
     shiny::observe({
       df <- raw_data()
       choices <- setdiff(names(df), ".row_uid")
-      if (length(choices) >= 2) {
-        shiny::updateSelectInput(session, "xvar", choices = choices, selected = choices[1])
-        shiny::updateSelectInput(session, "yvar", choices = choices, selected = choices[2])
-      } else if (length(choices) == 1) {
-        shiny::updateSelectInput(session, "xvar", choices = choices, selected = choices[1])
-      }
+      
+      shiny::updateSelectInput(
+        session,
+        "xvar",
+        choices = choices,
+        selected = if (!is.null(last_xvar()) && last_xvar() %in% choices) {
+          last_xvar()
+        } else if (length(choices) > 0) {
+          choices[1]
+        } else NULL
+      )
+      
+      shiny::updateSelectInput(
+        session,
+        "yvar",
+        choices = choices,
+        selected = if (!is.null(last_yvar()) && last_yvar() %in% choices) {
+          last_yvar()
+        } else if (length(choices) > 1) {
+          choices[2]
+        } else if (length(choices) == 1) {
+          choices[1]
+        } else NULL
+      )
     })
+    
     
     # ====== Selections ======
     highlight_ids <- shiny::reactiveVal(c())
@@ -191,10 +224,32 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         )
       )
       
-      shiny::updateSelectInput(session, "modal_xvar",
-                               selected = setdiff(names(filtered_df), ".row_uid")[1])
-      shiny::updateSelectInput(session, "modal_yvar",
-                               selected = setdiff(names(filtered_df), ".row_uid")[2])
+      # --- preserve last_xvar / last_yvar if valid ---
+      choices <- setdiff(names(filtered_df), ".row_uid")
+      
+      shiny::updateSelectInput(
+        session,
+        "modal_xvar",
+        choices = choices,
+        selected = if (!is.null(last_xvar()) && last_xvar() %in% choices) {
+          last_xvar()
+        } else if (length(choices) > 0) {
+          choices[1]
+        } else NULL
+      )
+      
+      shiny::updateSelectInput(
+        session,
+        "modal_yvar",
+        choices = choices,
+        selected = if (!is.null(last_yvar()) && last_yvar() %in% choices) {
+          last_yvar()
+        } else if (length(choices) > 1) {
+          choices[2]
+        } else if (length(choices) == 1) {
+          choices[1]
+        } else NULL
+      )
     })
     
     output$scatter_without <- plotly::renderPlotly({
