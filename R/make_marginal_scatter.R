@@ -109,7 +109,7 @@ make_marginal_scatter <- function(df,
   ) %>%
     plotly::layout(
       showlegend = FALSE,
-      dragmode = "zoom",   # default is click/zoom, not lasso
+      dragmode = "select",   # default is click/zoom, not lasso
       xaxis = list(
         title = xvar,
         showline = TRUE, zeroline = FALSE,
