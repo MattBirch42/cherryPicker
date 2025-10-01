@@ -24,6 +24,22 @@ make_marginal_scatter <- function(df,
     plot_df <- plot_df %>% dplyr::filter(!.row_uid %in% remove_ids)
   }
   
+  # these let you remove a bunch a missing factor levels won't break it:
+  {
+    if (is.factor(plot_df[[xvar]])) {
+      plot_df[[xvar]] <- as.numeric(as.character(plot_df[[xvar]]))
+    } else {
+      plot_df[[xvar]] <- as.numeric(plot_df[[xvar]])
+    }
+  
+    if (is.factor(plot_df[[yvar]])) {
+      plot_df[[yvar]] <- as.numeric(as.character(plot_df[[yvar]]))
+    } else {
+      plot_df[[yvar]] <- as.numeric(plot_df[[yvar]])
+    }
+  }
+
+  
   # Base scatter
   scatter <- plotly::plot_ly(
     data = plot_df,

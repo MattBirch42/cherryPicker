@@ -242,7 +242,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     })
     
     # ====== Download selected rows ======
-    output$download_selected <- shiny::downloadHandler(
+    output$export_to_csv_keep <- shiny::downloadHandler(
       filename = function() "cherry_picker_output.csv",
       content = function(file) {
         df <- raw_data()
@@ -256,7 +256,26 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       }
     )
     
-    # ====== Export to R ======
+    # ====== Export to CSV and Remove ======
+    output$export_to_csv_remove <- shiny::downloadHandler(
+      filename = function() "cherry_picker_output.csv",
+      content = function(file) {
+        df <- raw_data()
+        selected <- highlight_ids()
+        if (length(selected) > 0) {
+          selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
+        } else {
+          selected_df <- df[0, , drop = FALSE]
+        }
+        utils::write.csv(selected_df, file, row.names = FALSE)
+        
+        df_remaining <- df[!(df$.row_uid %in% selected), , drop = FALSE]
+        filtered_data(df_remaining)
+        highlight_ids(c())  # clear highlights
+      }
+    )
+    
+    # ====== Export to R and keep ======
     shiny::observeEvent(input$export_to_r, {
       df <- raw_data()
       selected <- highlight_ids()
@@ -300,6 +319,59 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         assign("cherry_picker_export_list", cherry_picker_export_list, envir = .GlobalEnv)
         
         shiny::showNotification("Export added to R session", type = "message")
+      }, ignoreInit = TRUE, once = TRUE)
+    })
+    
+    # ====== Export to R and Remove ======
+    shiny::observeEvent(input$export_to_r_remove, {
+      df <- raw_data()
+      selected <- highlight_ids()
+      if (length(selected) > 0) {
+        selected_df <- df[df$.row_uid %in% selected, , drop = FALSE]
+      } else {
+        selected_df <- df[0, , drop = FALSE]
+      }
+      
+      # Show modal to collect comment
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Add comment or description",
+          shiny::textAreaInput(
+            "export_comment_remove",
+            "Comment",
+            "",
+            width = "100%",
+            rows = 3,
+            placeholder = "Enter an optional comment for this export"
+          ),
+          footer = shiny::tagList(
+            shiny::modalButton("Cancel"),
+            shiny::actionButton("confirm_export_to_r_remove", "Export and Remove")
+          ),
+          easyClose = TRUE
+        )
+      )
+      
+      # Handle confirm button
+      shiny::observeEvent(input$confirm_export_to_r_remove, {
+        shiny::removeModal()
+        comment <- input$export_comment_remove
+        export_entry <- list(
+          data = selected_df,
+          comment = comment
+        )
+        
+        # Append to global list
+        cherry_picker_export_list <- get("cherry_picker_export_list", envir = .GlobalEnv)
+        cherry_picker_export_list[[length(cherry_picker_export_list) + 1]] <- export_entry
+        assign("cherry_picker_export_list", cherry_picker_export_list, envir = .GlobalEnv)
+        
+        # Remove exported rows from current working dataset
+        df_remaining <- df[!(df$.row_uid %in% selected), , drop = FALSE]
+        filtered_data(df_remaining)
+        highlight_ids(c())  # clear highlights
+        
+        shiny::showNotification("Export added to R session and selections removed from data", type = "message")
       }, ignoreInit = TRUE, once = TRUE)
     })
     

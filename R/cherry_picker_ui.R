@@ -68,9 +68,30 @@ cherry_picker_ui <- function() {
           # 3) Data Selection and Export Options
           shinyBS::bsCollapsePanel(
             "Data Selection and Export Options",
-            shiny::actionButton("export_to_r", "Export Selections to R"),
-            shiny::div(style = "margin-top: 20px;",
-                       shiny::downloadButton("download_selected", "Download Selected Data")),
+            
+            shiny::actionButton(
+              "export_to_r",
+              shiny::HTML("Export Selections to R<br>and Keep Them"),
+              width = "100%"),
+            
+            shiny::actionButton(
+              "export_to_r_remove",
+              shiny::HTML("Export Selections to R<br>and Remove Them"),
+              width = "100%"
+            ),
+            
+            shiny::downloadButton(
+              "export_to_csv_keep",
+              shiny::HTML("Download and Keep<br>Selected Data"),
+              width = "100%"
+            ),
+            
+            shiny::downloadButton(
+              "export_to_csv_remove",
+              shiny::HTML("Download and Remove<br>Selected Data"),
+              width = "100%"
+            ),
+            
             style = "primary"
           )
         )
