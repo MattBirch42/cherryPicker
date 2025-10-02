@@ -39,6 +39,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         }
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
+        df <- detect_and_convert_timestamps(df, session)
         uploaded_data(df)
         
         if (nrow(df) > 20000) {
@@ -121,6 +122,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         df <- as.data.frame(preloaded_data)
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
+        df <- detect_and_convert_timestamps(df, session)
         uploaded_data(df)
         filter_mode(FALSE)
         filtered_data(df)
