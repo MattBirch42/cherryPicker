@@ -148,6 +148,52 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       last_yvar(input$yvar)
     })
     
+    {
+      # Track chosen color variable
+      color_var <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(input$add_color, {
+        df <- raw_data()
+        choices <- setdiff(names(df), ".row_uid")
+        
+        # Build metadata summary for each variable
+        meta_info <- lapply(choices, function(v) {
+          vals <- df[[v]]
+          if (is.numeric(vals)) {
+            rng <- range(vals, na.rm = TRUE)
+            sprintf("%s (numeric, range: %.2f – %.2f)", v, rng[1], rng[2])
+          } else if (inherits(vals, c("Date", "POSIXct", "POSIXt"))) {
+            rng <- range(vals, na.rm = TRUE)
+            sprintf("%s (date/time, range: %s – %s)", v, rng[1], rng[2])
+          } else if (is.factor(vals) || is.character(vals)) {
+            nlev <- length(unique(vals))
+            sprintf("%s (categorical, %d levels)", v, nlev)
+          } else {
+            sprintf("%s (other)", v)
+          }
+        })
+        
+        shiny::showModal(
+          shiny::modalDialog(
+            title = "Choose a Color Variable",
+            shiny::selectInput("colorvar_choice", "Available variables",
+                               choices = setNames(choices, meta_info)),
+            footer = shiny::tagList(
+              shiny::modalButton("Cancel"),
+              shiny::actionButton("confirm_color", "Apply Color")
+            ),
+            size = "l",
+            easyClose = TRUE
+          )
+        )
+      })
+      
+      # Confirm choice
+      shiny::observeEvent(input$confirm_color, {
+        shiny::removeModal()
+        color_var(input$colorvar_choice)
+      })
+    }
     # Update choices but preserve selections if still valid
     shiny::observe({
       df <- raw_data()
@@ -184,9 +230,12 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     output$scatter <- plotly::renderPlotly({
       shiny::req(input$xvar, input$yvar)
-      make_marginal_scatter(raw_data(), input$xvar, input$yvar,
+      make_marginal_scatter(raw_data(),
+                            input$xvar, input$yvar,
                             nbins_x = input$x_bins,
-                            nbins_y = input$y_bins, highlight_ids())
+                            nbins_y = input$y_bins,
+                            highlight_ids(),
+                            colorvar = color_var())
     })
     
     shiny::observeEvent(plotly::event_data("plotly_click", source = "scatterplot"), {

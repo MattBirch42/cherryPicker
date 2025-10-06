@@ -15,10 +15,14 @@
 make_marginal_scatter <- function(df, 
                                   xvar, 
                                   yvar,
-                                  nbins_x = 30,
-                                  nbins_y = 30, 
-                                  highlight_ids = NULL, 
-                                  remove_ids = NULL) {
+                                  nbins_x = 30, 
+                                  nbins_y = 30,
+                                  highlight_ids = NULL,
+                                  remove_ids = NULL,
+                                  colorvar = NULL) {
+  
+  
+  
   plot_df <- df
   if (!is.null(remove_ids) && length(remove_ids) > 0) {
     plot_df <- plot_df %>% dplyr::filter(!.row_uid %in% remove_ids)
@@ -40,14 +44,122 @@ make_marginal_scatter <- function(df,
   }
 
   
-  # Base scatter
-  scatter <- plotly::plot_ly(
-    data = plot_df,
-    x = ~.data[[xvar]], y = ~.data[[yvar]],
-    type = "scattergl", mode = "markers",
-    marker = list(size = 7, opacity = 0.6, color = "gray"),
-    customdata = ~.row_uid
-  )
+  # --- Color handling and scatter creation ---
+  scatter <- NULL
+  
+  if (!is.null(colorvar) && colorvar %in% names(df)) {
+    vals <- df[[colorvar]]
+    
+    # === 1. Continuous numeric / date / time ===
+    if (is.numeric(vals) || inherits(vals, c("Date", "POSIXct", "POSIXt"))) {
+      # Convert dates/times to numeric for color scaling
+      numeric_vals <- if (is.numeric(vals)) vals else as.numeric(vals)
+      rng_num <- range(numeric_vals, na.rm = TRUE)
+      rng_label <- range(vals, na.rm = TRUE)
+      
+      scatter <- plotly::plot_ly(
+        data = plot_df,
+        x = ~.data[[xvar]],
+        y = ~.data[[yvar]],
+        type = "scatter",
+        mode = "markers",
+        marker = list(
+          size = 7, opacity = 0.7,
+          color = numeric_vals,   # numeric values drive the color
+          colorscale = list(c(0, "yellow"), c(0.5, "green"), c(1, "blue")),
+          colorbar = list(
+            title = colorvar,
+            tickmode = "array",
+            tickvals = rng_num,
+            ticktext = format(rng_label, digits = 4),  # readable labels
+            ticks = "outside"
+          )
+        ),
+        customdata = ~.row_uid
+      )
+    } else if (is.factor(vals) || is.character(vals)) {
+      plot_df[[colorvar]] <- as.factor(vals)
+      nlev <- nlevels(plot_df[[colorvar]])
+      
+      if (nlev <= 10) {
+        pal <- RColorBrewer::brewer.pal(max(3, nlev), "Set2")
+        
+        # Base plot
+        scatter <- plotly::plot_ly(showlegend = TRUE)
+        
+        # Add each level as a separate trace
+        for (i in seq_len(nlev)) {
+          lev <- levels(plot_df[[colorvar]])[i]
+          df_sub <- plot_df[plot_df[[colorvar]] == lev, ]
+          
+          scatter <- scatter %>%
+            plotly::add_trace(
+              data = df_sub,
+              x = ~.data[[xvar]],
+              y = ~.data[[yvar]],
+              type = "scatter",                # regular scatter → allows legend entries
+              mode = "markers",
+              marker = list(size = 7, opacity = 0.7, color = pal[i]),
+              name = paste0(colorvar, ": ", lev),
+              legendgroup = lev,
+              showlegend = TRUE,
+              customdata = ~.row_uid
+            )
+        }
+        
+        scatter <- scatter %>%
+          plotly::layout(
+            showlegend = TRUE,
+            legend = list(
+              title = list(text = colorvar),
+              orientation = "v",
+              x = 1.02, y = 1,
+              xanchor = "left", yanchor = "top",
+              font = list(size = 11)
+            )
+          )
+        
+      } else {
+        # >10 levels → no legend, gray points, note on plot
+        shiny::showNotification("No legend for more than 10 discrete values", type = "warning")
+        
+        scatter <- plotly::plot_ly(
+          data = plot_df,
+          x = ~.data[[xvar]],
+          y = ~.data[[yvar]],
+          type = "scattergl",
+          mode = "markers",
+          marker = list(size = 7, opacity = 0.7, color = "gray"),
+          customdata = ~.row_uid
+        ) %>%
+          plotly::layout(
+            annotations = list(
+              x = 1.02, y = 0.5, xref = "paper", yref = "paper",
+              text = "(No legend for more than 10 discrete values)",
+              showarrow = FALSE,
+              xanchor = "left", yanchor = "middle",
+              font = list(size = 11, color = "gray40")
+            ),
+            showlegend = FALSE
+          )
+      }
+      
+    }
+    
+    # === 3. Default (no colorvar) ===
+  } else {
+    scatter <- plotly::plot_ly(
+      data = plot_df,
+      x = ~.data[[xvar]],
+      y = ~.data[[yvar]],
+      type = "scattergl",
+      mode = "markers",
+      marker = list(size = 7, opacity = 0.7, color = "gray"),
+      customdata = ~.row_uid
+    )
+  }
+  
+  
   
   # Highlights
   if (!is.null(highlight_ids) && length(highlight_ids) > 0) {
