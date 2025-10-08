@@ -176,19 +176,38 @@ cherry_picker_server <- function(preloaded_data = NULL) {
           }
         })
         
-        shiny::showModal(
-          shiny::modalDialog(
-            title = "Choose a Color Variable",
-            shiny::selectInput("colorvar_choice", "Available variables",
-                               choices = setNames(choices, meta_info)),
-            footer = shiny::tagList(
-              shiny::modalButton("Cancel"),
-              shiny::actionButton("confirm_color", "Apply Color")
-            ),
-            size = "l",
-            easyClose = TRUE
+        {
+          shiny::showModal(
+            shiny::modalDialog(
+              title = "Choose a Color Variable",
+              shiny::div(
+                style = "max-height: 70vh; overflow-y: auto; font-size: 1.1em;",
+                shiny::selectInput(
+                  "colorvar_choice",
+                  "Available variables",
+                  choices = setNames(choices, meta_info),
+                  width = "100%"
+                )
+              ),
+              footer = shiny::tagList(
+                shiny::modalButton("Cancel"),
+                shiny::actionButton("confirm_color", "Apply Color", class = "btn-primary")
+              ),
+              easyClose = TRUE
+            )
           )
-        )
+          
+          shiny::tags$style(HTML("
+  .modal-dialog {
+    width: 50% !important;
+    max-width: 1600px !important;
+  }
+  .modal-content {
+    height: 160vh !important;
+  }
+"))
+          
+        }
       })
       
       # Confirm choice
