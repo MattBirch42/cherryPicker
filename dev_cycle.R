@@ -1,11 +1,13 @@
 # dev_cycle.R
 # Full package dev cycle: document -> build -> install -> check -> git commit/push
+remove.packages("cherryPicker")
+unlink(file.path(Sys.getenv("R_LIBS_USER"), "cherryPicker"), recursive = TRUE, force = TRUE)
 
 library(devtools)
 
 document()
 
-build_path <- build()
+build()
 
 install()
 

@@ -11,8 +11,8 @@
 #' @param session Optional Shiny session, used for displaying warnings in Shiny.
 #' @return A data frame with character columns converted to factors.
 #' @keywords internal
-detect_and_convert_characters_to_factors <- function(df,
-                                                     unique_warn_threshold = 500,
+detect_and_convert_characters <- function(df,
+                                                     unique_warn_threshold = 50,
                                                      session = NULL) {
   for (col in names(df)) {
     print(col)

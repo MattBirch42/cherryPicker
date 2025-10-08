@@ -13,8 +13,12 @@ build_filter_ui(df)
 A list of shiny UI elements (to be wrapped in tagList()).
 }
 \description{
-Generate filter controls dynamically for a dataset. Date columns get a
-date range input; numeric get a slider; character/factor/logical get a
-multi-select. Columns named ".row_uid" are skipped.
+Generate filter controls dynamically for a dataset.
+\itemize{
+\item Date/POSIXct columns get a date range input
+\item Numeric get a slider
+\item Character/factor/logical get a multi-select (unless too many uniques)
+Columns named ".row_uid" are skipped.
+}
 }
 \keyword{internal}
