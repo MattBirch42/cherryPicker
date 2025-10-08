@@ -14,7 +14,7 @@ install()
 check()
 
 system("git add .")
-commit_msg <- readline("Enter commit message: ")
+commit_msg <- readline("Redoing package ")
 if (nzchar(commit_msg)) {
   system(paste("git commit -m", shQuote(commit_msg)))
 } else {
