@@ -154,6 +154,7 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     {
       # Track chosen color variable
       color_var <- shiny::reactiveVal(NULL)
+      modal_color_var <- shiny::reactiveVal(NULL)
       
       shiny::observeEvent(input$add_color, {
         df <- raw_data()
@@ -284,6 +285,8 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       removed <- highlight_ids()
       filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
       
+      modal_color_var(color_var())
+      
       shiny::showModal(
         shiny::modalDialog(
           title = "Scatter Plot Without Selected Points",
@@ -332,7 +335,8 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
       make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar,
                             nbins_x = input$x_bins,
-                            nbins_y = input$y_bins)
+                            nbins_y = input$y_bins,
+                            colorvar = modal_color_var())
     })
     
     # ====== Selection counter ======
