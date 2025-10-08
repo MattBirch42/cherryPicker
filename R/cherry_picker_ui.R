@@ -20,7 +20,7 @@ cherry_picker_ui <- function() {
         # Collapsible groups
         shinyBS::bsCollapse(
           id = "sidebar_panels", 
-          open = c("Graph Axis Options"), 
+          open = c("Graph Options"), 
           multiple = TRUE,  
           
           # 1) Data and Filtering Options
@@ -60,6 +60,10 @@ cherry_picker_ui <- function() {
             shiny::selectInput("yvar", "Y-axis variable", choices = NULL),
             shiny::sliderInput("x_bins", "X histogram bins:", min = 5, max = 100, value = 30, step = 1),
             shiny::sliderInput("y_bins", "Y histogram bins:", min = 5, max = 100, value = 30, step = 1),
+            shiny::div(
+              style = "margin-top: 5px;",
+              shiny::actionButton("add_color", shiny::HTML("Optional:<br>Add Color Scheme"))
+            ),
             shiny::actionButton("clear", "Clear Selected Points"),
             shiny::div(style = "margin-top: 5px;",
                        shiny::actionButton("viz_without", shiny::HTML("Visualize Dataset<br>Without Selected Points"))),

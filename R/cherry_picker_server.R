@@ -39,6 +39,9 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         }
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
+        df <- detect_and_convert_timestamps(df, session)
+        df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
+        
         uploaded_data(df)
         
         if (nrow(df) > 20000) {
@@ -121,6 +124,8 @@ cherry_picker_server <- function(preloaded_data = NULL) {
         df <- as.data.frame(preloaded_data)
         df$.row_uid <- seq_len(nrow(df))
         df <- detect_and_convert_dates(df, session)
+        df <- detect_and_convert_timestamps(df, session)
+        df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
         uploaded_data(df)
         filter_mode(FALSE)
         filtered_data(df)
@@ -146,6 +151,72 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       last_yvar(input$yvar)
     })
     
+    {
+      # Track chosen color variable
+      color_var <- shiny::reactiveVal(NULL)
+      modal_color_var <- shiny::reactiveVal(NULL)
+      
+      shiny::observeEvent(input$add_color, {
+        df <- raw_data()
+        choices <- setdiff(names(df), ".row_uid")
+        
+        # Build metadata summary for each variable
+        meta_info <- lapply(choices, function(v) {
+          vals <- df[[v]]
+          if (is.numeric(vals)) {
+            rng <- range(vals, na.rm = TRUE)
+            sprintf("%s (numeric, range: %.2f – %.2f)", v, rng[1], rng[2])
+          } else if (inherits(vals, c("Date", "POSIXct", "POSIXt"))) {
+            rng <- range(vals, na.rm = TRUE)
+            sprintf("%s (date/time, range: %s – %s)", v, rng[1], rng[2])
+          } else if (is.factor(vals) || is.character(vals)) {
+            nlev <- length(unique(vals))
+            sprintf("%s (categorical, %d levels)", v, nlev)
+          } else {
+            sprintf("%s (other)", v)
+          }
+        })
+        
+        {
+          shiny::showModal(
+            shiny::modalDialog(
+              title = "Choose a Color Variable",
+              shiny::div(
+                style = "max-height: 70vh; overflow-y: auto; font-size: 1.1em;",
+                shiny::selectInput(
+                  "colorvar_choice",
+                  "Available variables",
+                  choices = setNames(choices, meta_info),
+                  width = "100%"
+                )
+              ),
+              footer = shiny::tagList(
+                shiny::modalButton("Cancel"),
+                shiny::actionButton("confirm_color", "Apply Color", class = "btn-primary")
+              ),
+              easyClose = TRUE
+            )
+          )
+          
+          shiny::tags$style(HTML("
+  .modal-dialog {
+    width: 50% !important;
+    max-width: 1600px !important;
+  }
+  .modal-content {
+    height: 160vh !important;
+  }
+"))
+          
+        }
+      })
+      
+      # Confirm choice
+      shiny::observeEvent(input$confirm_color, {
+        shiny::removeModal()
+        color_var(input$colorvar_choice)
+      })
+    }
     # Update choices but preserve selections if still valid
     shiny::observe({
       df <- raw_data()
@@ -182,9 +253,12 @@ cherry_picker_server <- function(preloaded_data = NULL) {
     
     output$scatter <- plotly::renderPlotly({
       shiny::req(input$xvar, input$yvar)
-      make_marginal_scatter(raw_data(), input$xvar, input$yvar,
+      make_marginal_scatter(raw_data(),
+                            input$xvar, input$yvar,
                             nbins_x = input$x_bins,
-                            nbins_y = input$y_bins, highlight_ids())
+                            nbins_y = input$y_bins,
+                            highlight_ids(),
+                            colorvar = color_var())
     })
     
     shiny::observeEvent(plotly::event_data("plotly_click", source = "scatterplot"), {
@@ -210,6 +284,8 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       df <- raw_data()
       removed <- highlight_ids()
       filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
+      
+      modal_color_var(color_var())
       
       shiny::showModal(
         shiny::modalDialog(
@@ -259,7 +335,8 @@ cherry_picker_server <- function(preloaded_data = NULL) {
       filtered_df <- df[!(df$.row_uid %in% removed), , drop = FALSE]
       make_marginal_scatter(filtered_df, input$modal_xvar, input$modal_yvar,
                             nbins_x = input$x_bins,
-                            nbins_y = input$y_bins)
+                            nbins_y = input$y_bins,
+                            colorvar = modal_color_var())
     })
     
     # ====== Selection counter ======

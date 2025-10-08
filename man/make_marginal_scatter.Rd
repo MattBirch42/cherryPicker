@@ -11,7 +11,8 @@ make_marginal_scatter(
   nbins_x = 30,
   nbins_y = 30,
   highlight_ids = NULL,
-  remove_ids = NULL
+  remove_ids = NULL,
+  colorvar = NULL
 )
 }
 \arguments{
@@ -21,16 +22,22 @@ make_marginal_scatter(
 
 \item{yvar}{Name of the variable to use on the y-axis.}
 
-\item{highlight_ids}{Optional vector of \code{.row_uid} values to highlight in red.}
+\item{nbins_x}{Number of bins for top histogram.}
 
-\item{remove_ids}{Optional vector of \code{.row_uid} values to exclude from plotting.}
+\item{nbins_y}{Number of bins for right histogram.}
+
+\item{highlight_ids}{Optional vector of \code{.row_uid} values to highlight.}
+
+\item{remove_ids}{Optional vector of \code{.row_uid} values to exclude.}
+
+\item{colorvar}{Optional variable name for coloring points.}
 }
 \value{
-A plotly object with scatter and histograms.
+A plotly object.
 }
 \description{
-Internal helper for Cherry Picker. Builds a scatter plot with marginal
-histograms for the selected x and y variables. Allows persistent highlighting
-of selected points.
+Builds a scatter plot with marginal histograms for the selected x and y
+variables. Handles numeric, date/time, and factor/character axes gracefully.
+Allows persistent highlighting of selected points.
 }
 \keyword{internal}
