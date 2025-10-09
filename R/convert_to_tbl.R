@@ -4,13 +4,17 @@
 #' Converts R objects such as `data.frame`, `tibble`, `matrix`, `ts`, `xts`,
 #' or `zoo` into a standardized `data.frame` and loads them into a temporary
 #' DuckDB table named `"data"`. If a DuckDB connection is not provided, one is
-#' created in memory (`:memory:`). This ensures consistent internal structure
-#' for subsequent processing within the Cherry Picker app.
+#' created in memory (`:memory:`). Optionally detects and converts date, time,
+#' and character columns using helper functions if available.
 #'
 #' @param input_data An object containing tabular or time series data. Supported
 #'   classes include `data.frame`, `tibble`, `matrix`, `ts`, `xts`, and `zoo`.
 #' @param con.app Optional DuckDB connection. If `NULL` or invalid, a new
 #'   in-memory connection will be established.
+#' @param auto_detect_types Logical. If `TRUE` (default), the function will
+#'   attempt to detect and convert timestamp, date, and character columns using
+#'   `detect_and_convert_timestamps()`, `detect_and_convert_dates()`, and
+#'   `detect_and_convert_characters()` if they exist.
 #'
 #' @return
 #' A list with two elements:
@@ -21,8 +25,9 @@
 #'
 #' @details
 #' - Ensures valid, unique column names.
-#' - Adds an `.row_uid` column if not already present.
+#' - Adds an `.id` column if not already present.
 #' - Replaces any existing `"data"` table quietly.
+#' - Optionally auto-detects and converts timestamps, dates, and characters.
 #'
 #' @examples
 #' \dontrun{
@@ -34,8 +39,8 @@
 #' @importFrom duckdb duckdb
 #' @importFrom dplyr tbl
 #' @export
-convert_to_tbl <- function(input_data, con.app = NULL) {
-  
+convert_to_tbl <- function(input_data, con.app = NULL, auto_detect_types = TRUE) {
+  # ---- Dependency checks ----------------------------------------------------
   if (!requireNamespace("duckdb", quietly = TRUE)) {
     stop("Package 'duckdb' is required. Please install it.")
   }
@@ -46,10 +51,12 @@ convert_to_tbl <- function(input_data, con.app = NULL) {
     stop("Package 'dplyr' is required. Please install it.")
   }
   
+  # ---- Ensure / create DuckDB connection -----------------------------------
   if (is.null(con.app) || !DBI::dbIsValid(con.app)) {
     con.app <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:", read_only = FALSE)
   }
   
+  # ---- Normalize input -----------------------------------------------------
   if (inherits(input_data, "data.frame") || inherits(input_data, "tbl_df")) {
     df <- base::as.data.frame(input_data)
   } else if (inherits(input_data, "matrix")) {
@@ -68,27 +75,63 @@ convert_to_tbl <- function(input_data, con.app = NULL) {
     stop("Unsupported input type: please provide a data.frame, tibble, matrix, ts, xts, or zoo object.")
   }
   
+  # ---- Final safety coercion ----------------------------------------------
   df <- tryCatch(
-    {
-      base::as.data.frame(df, stringsAsFactors = FALSE)
-    },
-    error = function(e) {
-      stop("Internal conversion failed: could not coerce input to a base data.frame. ", e$message)
-    }
+    base::as.data.frame(df, stringsAsFactors = FALSE),
+    error = function(e) stop("Internal conversion failed: could not coerce input to a base data.frame. ", e$message)
   )
   
+  # ---- Validate ------------------------------------------------------------
   if (!is.data.frame(df) || is.null(nrow(df)) || is.na(nrow(df))) {
     stop("Conversion failed: input object does not behave like a data.frame.")
   }
   
+  # ---- Clean column names --------------------------------------------------
   names(df) <- make.names(names(df), unique = TRUE)
   
-  if (!".row_uid" %in% names(df)) {
-    df$.row_uid <- seq_len(nrow(df))
+  # ---- Add ID column safely ------------------------------------------------
+  if (!".id" %in% names(df)) {
+    df$.id <- seq_len(nrow(df))
   }
   
+  # ---- Auto type detection -------------------------------------------------
+  if (isTRUE(auto_detect_types)) {
+    # Timestamp detection
+    if (exists("detect_and_convert_timestamps", mode = "function")) {
+      before <- names(df)
+      df_new <- detect_and_convert_timestamps(df)
+      changed <- setdiff(names(df_new)[!sapply(df_new, inherits, what = class(df[[1]]))], before)
+      if (length(changed) > 0) {
+        message("Detected and converted ", length(changed), " timestamp columns:\n  - ", paste(changed, collapse = "\n  - "))
+      }
+      df <- df_new
+    }
+    # Date detection
+    if (exists("detect_and_convert_dates", mode = "function")) {
+      before_classes <- sapply(df, class)
+      df_new <- detect_and_convert_dates(df)
+      converted <- names(which(sapply(df_new, inherits, "Date") & !sapply(df, inherits, "Date")))
+      if (length(converted) > 0) {
+        message("Detected and converted ", length(converted), " date columns:\n  - ", paste(converted, collapse = "\n  - "))
+      }
+      df <- df_new
+    }
+    # Character detection
+    if (exists("detect_and_convert_characters", mode = "function")) {
+      before_classes <- sapply(df, class)
+      df_new <- detect_and_convert_characters(df)
+      converted <- names(which(sapply(df_new, inherits, "character") & !sapply(df, inherits, "character")))
+      if (length(converted) > 0) {
+        message("Detected and converted ", length(converted), " character columns:\n  - ", paste(converted, collapse = "\n  - "))
+      }
+      df <- df_new
+    }
+  }
+  
+  # ---- Write into DuckDB ---------------------------------------------------
   DBI::dbWriteTable(con.app, "data", df, overwrite = TRUE)
   
+  # ---- Return connection and table reference ------------------------------
   tbl_ref <- dplyr::tbl(con.app, "data")
   
   message("Data successfully converted and loaded into temporary DuckDB table 'data'.")
