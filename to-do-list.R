@@ -1,17 +1,4 @@
-# Cherry Picker — Full Development To-Do List (CRAN-Ready Version)
-# 
-# PHASE 1 — Core Function Development (Before Building Tabs)
-# These are the foundational functions that will power every tab in your app and keep the CRAN version modular and testable.
-# 
-# Data Conversion & Validation
-# 
-# convert_to_tbl(): Converts user input (data.frame, ts, xts, tibble, matrix, etc.) into a standardized tibble or duckdb table.
-# 
-# Checks column types, converts date/time columns to POSIXct, numeric columns to double.
-# 
-# Adds an .id column if missing.
-# 
-# Returns a consistent structure regardless of input format.
+
 # 
 # Aggregation Functions
 # 
