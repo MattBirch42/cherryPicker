@@ -18,7 +18,7 @@ commit_msg <- readline("Redoing package ")
 if (nzchar(commit_msg)) {
   system(paste("git commit -m", shQuote(commit_msg)))
 } else {
-  message("⚠️  No commit message entered. Skipping commit.")
+  message(" No commit message entered. Skipping commit.")
 }
 system("git push")
 

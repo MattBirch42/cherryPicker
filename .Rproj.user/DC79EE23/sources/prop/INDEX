@@ -4,6 +4,7 @@
 ~%2FcherryPicker%2FR%2Fcherry_picker_app.R="F88CA77C"
 ~%2FcherryPicker%2FR%2Fcherry_picker_server.R="CDD71FE0"
 ~%2FcherryPicker%2FR%2Fcherry_picker_ui.R="D0F83DFF"
+~%2FcherryPicker%2FR%2Fconvert_to_tbl.R="2F970F09"
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_characters.R="9CB35FF9"
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_dates.R="D8C9E0B8"
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_timestamps.R="06F239EB"
@@ -24,4 +25,5 @@
 ~%2FcherryPicker%2Fhex_code.R="C8403243"
 ~%2FcherryPicker%2Fmake_marginal_scatter.R="144FFB3B"
 ~%2FcherryPicker%2Frun_cherry_picker.R="9331A9DE"
+~%2FcherryPicker%2Fto-do-list.R="8CCBD422"
 ~%2FcherryPicker_support%2Fapp.R="BF52E96D"
