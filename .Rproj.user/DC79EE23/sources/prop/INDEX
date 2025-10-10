@@ -8,6 +8,7 @@
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_characters.R="9CB35FF9"
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_dates.R="D8C9E0B8"
 ~%2FcherryPicker%2FR%2Fdetect_and_convert_timestamps.R="06F239EB"
+~%2FcherryPicker%2FR%2Fdetect_outliers_zscore.R="02F37A17"
 ~%2FcherryPicker%2FR%2Ffake_data.R="662055F6"
 ~%2FcherryPicker%2FR%2Fmake_marginal_scatter.R="070A1ABD"
 ~%2FcherryPicker%2FR%2Frun_cherry_picker.R="4D5DD762"
