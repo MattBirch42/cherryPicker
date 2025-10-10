@@ -10,12 +10,6 @@
 # 
 # Outlier Detection Functions
 # 
-# detect_outliers_zscore(): Calculates z-scores for numeric columns and flags points above user threshold (abs(z) > 3, default 3).
-# 
-# detect_outliers_iqr(): Uses 1.5×IQR rule.
-# 
-# detect_outliers_mahalanobis(): Multivariate distance for joint variable detection.
-# 
 # auto_detect_outliers(): Wrapper that chooses detection method based on user input.
 # 
 # flag_outliers(): Adds .outlier_flag column and stores threshold + method metadata.
