@@ -2,11 +2,6 @@
 # 
 # Aggregation Functions
 # 
-# aggregate_duckdb(): Runs aggregation queries (mean, min, max, slice_min, slice_max, etc.) dynamically using DuckDB.
-# Parameters: data, group_by, metrics, functions.
-# Returns a new aggregated table and appends metadata (aggregation recipe, timestamp).
-# 
-# list_aggregators(): Helper that returns available aggregation types (e.g., c("mean", "min", "max", "slice_min", "slice_max")) for UI dropdowns.
 # 
 # Outlier Detection Functions
 # 
