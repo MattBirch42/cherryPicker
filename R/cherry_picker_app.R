@@ -6,9 +6,16 @@
 #' @return A Shiny app object.
 #' @keywords internal
 #' 
+# cherry_picker_app <- function(preloaded_data = NULL) {
+#   shiny::shinyApp(
+#     ui = cherry_picker_ui(),
+#     server = cherry_picker_server(preloaded_data)
+#   )
+# }
+
 cherry_picker_app <- function(preloaded_data = NULL) {
   shiny::shinyApp(
-    ui = cherry_picker_ui(),
-    server = cherry_picker_server(preloaded_data)
+    ui = ui_cherry_picker_main(),
+    server = server_cherry_picker_main
   )
 }
