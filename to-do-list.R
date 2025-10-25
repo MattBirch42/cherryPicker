@@ -1,8 +1,8 @@
+# data import tab is good for loading data. breaks with preloaded data. 
+# modify data import tab to be first tab if no preloaded_data. if preloaded data, first tab is cherry_picker. 
+# modify import tab so that if you have preloaded data, it has the object name from R in the upload bar. 
+# popup for when you leave upload tab: do you want your analysis to proceed with filtered data, or full input data?
 
-# 
-# Aggregation Functions
-# 
-# 
 # Outlier Detection Functions
 # 
 # auto_detect_outliers(): Wrapper that chooses detection method based on user input.
