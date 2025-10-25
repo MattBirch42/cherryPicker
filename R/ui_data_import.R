@@ -6,7 +6,7 @@
 #' @return A Shiny UI definition.
 #' @keywords internal
 #' @import shiny
-ui_data_import <- function() {
+ui_data_import <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::titlePanel("Data Import and Filtering"),
     

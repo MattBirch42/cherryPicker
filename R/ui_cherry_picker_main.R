@@ -19,7 +19,7 @@
 #' @import shiny
 #' @import shinythemes
 #'
-ui_cherry_picker_main <- function() {
+ui_cherry_picker_main <- function(imported_data = NULL) {
   shiny::fluidPage(
     theme = shinythemes::shinytheme("yeti"),
     shiny::titlePanel("Cherry Picker"),
@@ -31,27 +31,27 @@ ui_cherry_picker_main <- function() {
       # --- Tabs ---
       shiny::tabPanel(
         "Data Import and Filter",
-        ui_data_import()
+        ui_data_import(imported_data)
       ),
       
       shiny::tabPanel(
         "Cherry Picker",
-        ui_cherry_picker()
+        ui_cherry_picker(imported_data)
       ),
       
       shiny::tabPanel(
         "Aggregations",
-        ui_aggregation()
+        ui_aggregation(imported_data)
       ),
       
       shiny::tabPanel(
         "Linear Modeling",
-        ui_linear_modeling()
+        ui_linear_modeling(imported_data)
       ),
       
       shiny::tabPanel(
         "Additional Modeling",
-        ui_additional_modeling()
+        ui_additional_modeling(imported_data)
       )
     ),
     

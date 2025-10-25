@@ -1,15 +1,15 @@
-#' Data Import and Filter UI
-#' @keywords internal
-ui_data_import <- function() {
-  shiny::fluidPage(
-    shiny::h4("Data Import and Filter (placeholder)"),
-    shiny::helpText("Upload and filter data will go here.")
-  )
-}
+#' #' Data Import and Filter UI
+#' #' @keywords internal
+#' ui_data_import <- function(imported_data = NULL) {
+#'   shiny::fluidPage(
+#'     shiny::h4("Data Import and Filter (placeholder)"),
+#'     shiny::helpText("Upload and filter data will go here.")
+#'   )
+#' }
 
 #' Cherry Picker UI
 #' @keywords internal
-ui_cherry_picker <- function() {
+ui_cherry_picker <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::h4("Cherry Picker (placeholder)"),
     shiny::helpText("Interactive data selection and visualization will go here.")
@@ -18,7 +18,7 @@ ui_cherry_picker <- function() {
 
 #' Aggregation UI
 #' @keywords internal
-ui_aggregation <- function() {
+ui_aggregation <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::h4("Aggregations (placeholder)"),
     shiny::helpText("Data summaries and aggregations will go here.")
@@ -27,7 +27,7 @@ ui_aggregation <- function() {
 
 #' Linear Modeling UI
 #' @keywords internal
-ui_linear_modeling <- function() {
+ui_linear_modeling <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::h4("Linear Modeling (placeholder)"),
     shiny::helpText("Linear regression tools will go here.")
@@ -36,7 +36,7 @@ ui_linear_modeling <- function() {
 
 #' Additional Modeling UI
 #' @keywords internal
-ui_additional_modeling <- function() {
+ui_additional_modeling <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::h4("Additional Modeling (placeholder)"),
     shiny::helpText("Advanced or experimental modeling tools will go here.")

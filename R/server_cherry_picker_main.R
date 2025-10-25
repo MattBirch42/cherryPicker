@@ -22,7 +22,7 @@
 #' @keywords internal
 #' @import shiny
 #'
-server_cherry_picker_main <- function(input, output, session) {
+server_cherry_picker_main <- function(input, output, session, imported_data = NULL) {
   
   # --- Reactive data store shared across modules ---
   # This holds the dataset currently in use, whether imported or preloaded
