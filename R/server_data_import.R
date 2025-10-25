@@ -1,6 +1,6 @@
-#' Data Import and Filter Server (Module Version)
+#' Data Import and Filter Server (Module Version, Fully Reactive)
 #'
-#' Handles file upload, optional auto-detection conversions, metadata summary,
+#' Handles file upload, auto-detection conversions, metadata summary,
 #' and filtering for the Cherry Picker application.
 #'
 #' @param id Module ID (must match the one used in the UI).
@@ -12,13 +12,31 @@
 #' @import shiny
 server_data_import <- function(id, rvals, preloaded_data = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
-    ns <- session$ns  # namespacing function for all IDs
+    ns <- session$ns
     
-    # Detect whether a preloaded dataset is present
-    output$preloadedMode <- shiny::reactive({
-      !is.null(rvals$data)
+    # --- Initialize preloaded data if provided ---
+    if (!is.null(preloaded_data) && is.null(rvals$data)) {
+      df <- preloaded_data
+      
+      if (exists("detect_and_convert_dates")) {
+        df <- detect_and_convert_dates(df, session)
+      }
+      if (exists("detect_and_convert_timestamps")) {
+        df <- detect_and_convert_timestamps(df, session)
+      }
+      if (exists("detect_and_convert_characters")) {
+        df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
+      }
+      
+      rvals$data <- df
+      rvals$filtered_data <- df
+    }
+    
+    # --- Reactive wrapper around filtered data ---
+    filtered_data <- shiny::reactive({
+      req(rvals$filtered_data)
+      rvals$filtered_data
     })
-    shiny::outputOptions(output, "preloadedMode", suspendWhenHidden = FALSE)
     
     # --- Handle file upload ---
     shiny::observeEvent(input$file, {
@@ -37,7 +55,7 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       
       df$.row_uid <- seq_len(nrow(df))
       
-      # Apply user-selected auto-detection functions
+      # --- Apply detect-and-convert BEFORE assigning to rvals ---
       if (isTRUE(input$auto_dates) && exists("detect_and_convert_dates")) {
         df <- detect_and_convert_dates(df, session)
       }
@@ -48,9 +66,11 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
         df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
       }
       
+      # --- Assign processed data ---
       rvals$data <- df
       rvals$filtered_data <- df
       
+      # --- Show modal for large datasets ---
       if (nrow(df) > 20000) {
         shiny::showModal(
           shiny::modalDialog(
@@ -70,16 +90,15 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       }
     })
     
-    # Proceed without filtering
+    # --- Proceed without filtering ---
     shiny::observeEvent(input$proceed_no_filter, {
       shiny::removeModal()
       rvals$filtered_data <- rvals$data
     })
     
-    # --- Metadata Summary (reacts to filters) ---
+    # --- Metadata summary (reactive to filtering) ---
     output$data_meta_summary <- shiny::renderUI({
-      req(rvals$filtered_data)
-      df <- rvals$filtered_data
+      df <- filtered_data()
       
       meta <- data.frame(
         Variable = names(df),
@@ -166,14 +185,14 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       
       output$filter_ui <- shiny::renderUI({
         if (exists("build_filter_ui")) {
-          build_filter_ui(df)
+          build_filter_ui(df, ns)
         } else {
           shiny::helpText("Filter UI not available. Please define build_filter_ui().")
         }
       })
     })
     
-    # --- Apply filters (fixed ordering) ---
+    # --- Apply filters ---
     shiny::observeEvent(input$apply_filters, {
       if (exists("apply_filters")) {
         filtered_df <- apply_filters(rvals$data, input)
@@ -188,18 +207,18 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       }
     })
     
-    # Cancel filters
+    # --- Cancel filters ---
     shiny::observeEvent(input$cancel_filters, {
       shiny::removeModal()
     })
     
-    # Clear filters
+    # --- Clear filters ---
     shiny::observeEvent(input$clear_filters, {
       rvals$filtered_data <- rvals$data
       shiny::showNotification("Filters cleared. Showing all rows.", type = "message")
     })
     
-    # --- Filter counter inside modal ---
+    # --- Filter counter (optional inside modal) ---
     output$filter_counter <- shiny::renderUI({
       if (!is.null(rvals$data)) {
         total <- nrow(rvals$data)
@@ -216,11 +235,11 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       }
     })
     
-    # --- Data preview section (reactive to filtering) ---
+    # --- Data preview (reactive to filtering) ---
     output$data_preview <- shiny::renderUI({
-      req(rvals$filtered_data)
+      df <- filtered_data()
       total <- if (!is.null(rvals$data)) nrow(rvals$data) else NA
-      filtered <- nrow(rvals$filtered_data)
+      filtered <- nrow(df)
       
       shiny::tagList(
         shiny::h4("Data Preview"),
@@ -232,9 +251,9 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       )
     })
     
+    # --- Data head table ---
     output$data_head <- shiny::renderTable({
-      req(rvals$filtered_data)
-      df <- head(rvals$filtered_data, 10)
+      df <- head(filtered_data(), 10)
       df <- dplyr::mutate(df, dplyr::across(
         where(~ inherits(., c("Date", "POSIXt"))),
         ~ as.character(.)

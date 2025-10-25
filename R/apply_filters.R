@@ -33,5 +33,6 @@ apply_filters <- function(df, input) {
       }
     }
   }
+  message("apply_filters() called on ", nrow(df), " rows → ", nrow(out), " rows")
   out
 }

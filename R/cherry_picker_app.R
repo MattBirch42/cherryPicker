@@ -38,4 +38,5 @@ cherry_picker_app <- function(preloaded_data = NULL) {
   )
 }
 
-cherry_picker_app(fake_data)
+cherry_picker_app()
+# cherry_picker_app(fake_data)
