@@ -2,18 +2,18 @@
 #'
 #' Launches the Shiny app with either uploaded or preloaded data.
 #'
-#' @param preloaded_data Optional data frame to skip file upload.
+#' @param imported_data Optional data frame to skip file upload.
 #' @return A Shiny app object.
 #' @keywords internal
 #' 
-# cherry_picker_app <- function(preloaded_data = NULL) {
+# cherry_picker_app <- function(imported_data = NULL) {
 #   shiny::shinyApp(
 #     ui = cherry_picker_ui(),
-#     server = cherry_picker_server(preloaded_data)
+#     server = cherry_picker_server(imported_data)
 #   )
 # }
 
-# cherry_picker_app <- function(preloaded_data = NULL) {
+# cherry_picker_app <- function(imported_data = NULL) {
 #   shiny::shinyApp(
 #     ui = ui_cherry_picker_main(),
 #     server = server_cherry_picker_main
@@ -31,7 +31,7 @@ fake.data <- fake_data(10000,42)
 
 cherry_picker_app <- function(preloaded_data = NULL) {
   shiny::shinyApp(
-    ui = ui_cherry_picker_main(preloaded_data = preloaded_data),
+    ui = ui_cherry_picker_main(),
     server = function(input, output, session) {
       server_cherry_picker_main(input, output, session, preloaded_data = preloaded_data)
     }

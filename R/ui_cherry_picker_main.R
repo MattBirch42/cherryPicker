@@ -1,25 +1,19 @@
-#' Cherry Picker Main UI
+#' Cherry Picker Main UI (Modular)
 #'
 #' Constructs the main Shiny user interface for the Cherry Picker application.
-#' This tab-based layout provides a clean top navigation bar with the following tabs:
-#' \itemize{
-#'   \item \strong{Data Import and Filter:} Handles file upload and data filtering.
-#'   \item \strong{Cherry Picker:} The main interactive data selection interface.
-#'   \item \strong{Aggregations:} Displays aggregation and summary statistics.
-#'   \item \strong{Linear Modeling:} Provides tools for fitting and visualizing linear models.
-#'   \item \strong{Additional Modeling:} Offers advanced or experimental modeling tools.
-#' }
-#'
-#' Each tab references a corresponding modular UI function:
-#' \code{ui_data_import()}, \code{ui_cherry_picker()}, \code{ui_aggregation()},
-#' \code{ui_linear_modeling()}, and \code{ui_additional_modeling()}.
+#' Each tab is implemented as a Shiny module, providing:
+#' - Data Import and Filter
+#' - Cherry Picker
+#' - Aggregations
+#' - Linear Modeling
+#' - Additional Modeling
 #'
 #' @return A Shiny UI definition for the Cherry Picker main application.
 #' @keywords internal
 #' @import shiny
 #' @import shinythemes
 #'
-ui_cherry_picker_main <- function(imported_data = NULL) {
+ui_cherry_picker_main <- function(preloaded_data = NULL) {
   shiny::fluidPage(
     theme = shinythemes::shinytheme("yeti"),
     shiny::titlePanel("Cherry Picker"),
@@ -28,30 +22,30 @@ ui_cherry_picker_main <- function(imported_data = NULL) {
       title = NULL,  # Title already shown above
       id = "main_tabs",
       
-      # --- Tabs ---
+      # --- Tabs (now modular) ---
       shiny::tabPanel(
         "Data Import and Filter",
-        ui_data_import(imported_data)
+        ui_data_import("import")
       ),
       
       shiny::tabPanel(
         "Cherry Picker",
-        ui_cherry_picker(imported_data)
+        ui_cherry_picker("picker")
       ),
       
       shiny::tabPanel(
         "Aggregations",
-        ui_aggregation(imported_data)
+        ui_aggregation("agg")
       ),
       
       shiny::tabPanel(
         "Linear Modeling",
-        ui_linear_modeling(imported_data)
+        ui_linear_modeling("lm")
       ),
       
       shiny::tabPanel(
         "Additional Modeling",
-        ui_additional_modeling(imported_data)
+        ui_additional_modeling("extra")
       )
     ),
     

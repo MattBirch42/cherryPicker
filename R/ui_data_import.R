@@ -1,68 +1,71 @@
-#' Data Import and Filter UI
+#' Data Import and Filter UI (Module Version)
 #'
 #' Provides a full-page layout for uploading and optionally filtering data,
 #' including metadata summary after upload and user-selected auto-detection options.
 #'
-#' @return A Shiny UI definition.
+#' @param id A unique module identifier.
+#' @return A Shiny UI definition for use in a modular app.
 #' @keywords internal
 #' @import shiny
-ui_data_import <- function(imported_data = NULL) {
+ui_data_import <- function(id) {
+  ns <- shiny::NS(id)  # create namespace for all IDs
+  
   shiny::fluidPage(
     shiny::titlePanel("Data Import and Filtering"),
     
-    # Upload controls
+    # --- Upload controls ---
     shiny::fluidRow(
       shiny::column(
         width = 6,
-        shiny::fileInput("file", "Upload CSV or Parquet file", width = "100%")
+        shiny::fileInput(ns("file"), "Upload CSV or Parquet file", width = "100%")
       ),
       shiny::column(
         width = 3,
-        shiny::checkboxInput("header", "Data has Header", TRUE)
+        shiny::checkboxInput(ns("header"), "Data has Header", TRUE)
       )
     ),
     
-    # Conversion options
+    # --- Conversion options ---
     shiny::fluidRow(
       shiny::column(
         width = 4,
-        shiny::checkboxInput("auto_timestamps", "Autodetect timestamps", TRUE)
+        shiny::checkboxInput(ns("auto_timestamps"), "Autodetect timestamps", TRUE)
       ),
       shiny::column(
         width = 4,
-        shiny::checkboxInput("auto_dates", "Autodetect dates", TRUE)
+        shiny::checkboxInput(ns("auto_dates"), "Autodetect dates", TRUE)
       ),
       shiny::column(
         width = 4,
-        shiny::checkboxInput("convert_characters", "Convert characters to factors", TRUE)
+        shiny::checkboxInput(ns("convert_characters"), "Convert characters to factors", TRUE)
       )
     ),
     
     shiny::hr(),
     
-    # Metadata summary (appears after upload)
-    shiny::uiOutput("data_meta_summary"),
+    # --- Metadata summary (appears after upload) ---
+    shiny::uiOutput(ns("data_meta_summary")),
     
     shiny::hr(),
     
-    # Filter buttons
+    # --- Filter buttons ---
     shiny::fluidRow(
       shiny::column(
         width = 6,
-        shiny::actionButton("do_filter", shiny::HTML("Optional:<br>Filter Data"), width = "100%")
+        shiny::actionButton(ns("do_filter"), shiny::HTML("Optional:<br>Filter Data"), width = "100%")
       ),
       shiny::column(
         width = 6,
-        shiny::actionButton("clear_filters", shiny::HTML("Optional:<br>Clear Filters"), width = "100%")
+        shiny::actionButton(ns("clear_filters"), shiny::HTML("Optional:<br>Clear Filters"), width = "100%")
       )
     ),
     
     shiny::hr(),
     
-    # Data preview section
-    shiny::uiOutput("data_preview"),
+    # --- Data preview section ---
+    shiny::uiOutput(ns("data_preview")),
     
-    # Styling for modal and meta table
+    # --- Styling for modal and meta table ---
     shiny::tags$head(
       shiny::tags$style(shiny::HTML("
         .modal-body {
