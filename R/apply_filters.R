@@ -1,38 +1,61 @@
-#' Apply Filters to Data
+#' Apply Filters to Data (global NA removal logic)
 #'
-#' Apply user-selected filters from Shiny UI to a dataset.
-#' NA values are always retained unless a filter would exclude them
-#' (for numeric/date ranges or set filters).
+#' Applies user-selected filters and drops entire rows
+#' containing NA values in any columns where "Exclude NA" is checked.
 #'
 #' @param df Data frame.
 #' @param input Shiny input object.
 #' @return Filtered data frame.
 #' @keywords internal
 apply_filters <- function(df, input) {
-  out <- df
+  if (is.null(df) || nrow(df) == 0) return(df)
+  
+  keep <- rep(TRUE, nrow(df))
+  
+  # 1. Apply value/range filters first
   for (col in names(df)) {
     if (col == ".row_uid") next
+    v  <- df[[col]]
     id <- paste0("filter_", col)
-    v <- df[[col]]
+    
     if (!is.null(input[[id]])) {
       if (inherits(v, "Date")) {
         dr <- input[[id]]
         if (length(dr) == 2 && all(!is.na(dr))) {
-          out <- out[(is.na(out[[col]]) | (out[[col]] >= dr[1] & out[[col]] <= dr[2])), , drop = FALSE]
+          keep <- keep & (v >= dr[1] & v <= dr[2])
         }
       } else if (is.numeric(v)) {
         rng <- input[[id]]
         if (length(rng) == 2 && all(is.finite(rng))) {
-          out <- out[(is.na(out[[col]]) | (out[[col]] >= rng[1] & out[[col]] <= rng[2])), , drop = FALSE]
+          keep <- keep & (v >= rng[1] & v <= rng[2])
         }
       } else {
         vals <- input[[id]]
         if (!is.null(vals)) {
-          out <- out[(is.na(out[[col]]) | out[[col]] %in% vals), , drop = FALSE]
+          keep <- keep & (v %in% vals | is.na(v))
         }
       }
     }
   }
-  message("apply_filters() called on ", nrow(df), " rows → ", nrow(out), " rows")
-  out
+  
+  # 2. Identify which columns have "Exclude NA" toggled
+  exclude_cols <- names(df)[
+    vapply(names(df), function(col) {
+      id <- paste0("exclude_na_", col)
+      isTRUE(input[[id]])
+    }, logical(1))
+  ]
+  
+  print(paste0("exclude_cols = ",exclude_cols))
+  
+  # 3. Drop any rows with NA in *any* of those columns
+  if (length(exclude_cols) > 0) {
+    df <- df %>%
+      dplyr::filter(
+        dplyr::if_all(dplyr::all_of(exclude_cols), ~ !is.na(.))
+      )
+    keep <- rep(TRUE, nrow(df))
+  }
+  
+  df[keep, , drop = FALSE]
 }
