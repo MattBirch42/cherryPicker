@@ -1,7 +1,7 @@
-#' Data Import and Filter Server (Module Version, Fully Reactive)
+#' Data Import and Filter Server (Module Version, Using DuckDB)
 #'
-#' Handles file upload, auto-detection conversions, metadata summary,
-#' and filtering for the Cherry Picker application.
+#' Handles file upload or preloaded data, performs optional conversions,
+#' and loads everything into DuckDB via `convert_to_tbl()`.
 #'
 #' @param id Module ID (must match the one used in the UI).
 #' @param rvals Shared reactiveValues object from the main server.
@@ -14,91 +14,98 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
-    # --- Initialize preloaded data if provided ---
-    if (!is.null(preloaded_data) && is.null(rvals$data)) {
-      df <- preloaded_data
-      
-      if (exists("detect_and_convert_dates")) {
-        df <- detect_and_convert_dates(df, session)
+    # ---- Initialize DuckDB connection once ---------------------------------
+    observe({
+      # Use isolate() only for checking existence
+      if (is.null(isolate(rvals$con.app)) || 
+          !DBI::dbIsValid(isolate(rvals$con.app))) {
+        
+        message("Initializing new DuckDB connection...")
+        rvals$con.app <- DBI::dbConnect(
+          duckdb::duckdb(),
+          dbdir = ":memory:",
+          read_only = FALSE
+        )
+        
+        showNotification("DuckDB connection established.", type = "message")
       }
-      if (exists("detect_and_convert_timestamps")) {
-        df <- detect_and_convert_timestamps(df, session)
-      }
-      if (exists("detect_and_convert_characters")) {
-        df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
-      }
-      
-      rvals$data <- df
-      rvals$filtered_data <- df
-    }
-    
-    # --- Reactive wrapper around filtered data ---
-    filtered_data <- shiny::reactive({
-      req(rvals$filtered_data)
-      rvals$filtered_data
     })
     
-    # --- Handle file upload ---
-    shiny::observeEvent(input$file, {
-      req(input$file)
-      ext <- tools::file_ext(input$file$name)
-      
-      df <- switch(
-        tolower(ext),
-        "csv"     = utils::read.csv(input$file$datapath, header = input$header, stringsAsFactors = FALSE),
-        "parquet" = as.data.frame(arrow::read_parquet(input$file$datapath)),
-        {
-          shiny::showNotification("Unsupported file type. Please upload a CSV or Parquet file.", type = "error")
-          return(NULL)
-        }
-      )
-      
-      df$.row_uid <- seq_len(nrow(df))
-      
-      # --- Apply detect-and-convert BEFORE assigning to rvals ---
-      if (isTRUE(input$auto_dates) && exists("detect_and_convert_dates")) {
-        df <- detect_and_convert_dates(df, session)
-      }
-      if (isTRUE(input$auto_timestamps) && exists("detect_and_convert_timestamps")) {
-        df <- detect_and_convert_timestamps(df, session)
-      }
-      if (isTRUE(input$convert_characters) && exists("detect_and_convert_characters")) {
-        df <- detect_and_convert_characters(df, session, unique_warn_threshold = 50)
-      }
-      
-      # --- Assign processed data ---
-      rvals$data <- df
-      rvals$filtered_data <- df
-      
-      # --- Show modal for large datasets ---
-      if (nrow(df) > 20000) {
-        shiny::showModal(
-          shiny::modalDialog(
-            title = "Large Data Warning",
-            shiny::p(
-              paste0("Your dataset has ", nrow(df), " rows and ", ncol(df),
-                     " columns. Larger datasets may slow down the app. ",
-                     "Do you want to filter the data first?")
-            ),
-            footer = shiny::tagList(
-              shiny::actionButton(ns("proceed_no_filter"), "Proceed without filtering"),
-              shiny::actionButton(ns("do_filter_modal"), "Filter data")
-            ),
-            easyClose = FALSE
-          )
+    # ---- Handle preloaded data --------------------------------------------
+    observe({
+      # run once only
+      if (!is.null(preloaded_data) && is.null(isolate(rvals$data))) {
+        message("Preloading dataset into DuckDB...")
+        
+        res <- convert_to_tbl(
+          input_data = preloaded_data,
+          con.app = isolate(rvals$con.app),
+          auto_detect_timestamps = FALSE,
+          auto_detect_dates = FALSE,
+          auto_detect_characters = FALSE
+        )
+        
+        rvals$con.app <- res$con.app
+        rvals$data <- res$tbl
+        rvals$filtered_data <- res$tbl
+        
+        showNotification(
+          paste0("Preloaded dataset loaded into DuckDB (",
+                 ncol(preloaded_data), " columns, ",
+                 nrow(preloaded_data), " rows)."),
+          type = "message"
         )
       }
     })
     
-    # --- Proceed without filtering ---
-    shiny::observeEvent(input$proceed_no_filter, {
-      shiny::removeModal()
-      rvals$filtered_data <- rvals$data
+    # ---- Handle user file upload ------------------------------------------
+    observeEvent(input$file, {
+      req(input$file)
+      ext <- tools::file_ext(input$file$name)
+      
+      # --- Read file into a base data.frame first ---
+      df <- switch(
+        tolower(ext),
+        "csv"     = utils::read.csv(input$file$datapath,
+                                    header = input$header,
+                                    stringsAsFactors = FALSE),
+        "parquet" = as.data.frame(arrow::read_parquet(input$file$datapath)),
+        {
+          showNotification("Unsupported file type. Please upload CSV or Parquet.", type = "error")
+          return(NULL)
+        }
+      )
+      
+      # --- Always feed through convert_to_tbl() ---
+      res <- convert_to_tbl(
+        input_data = df,
+        con.app = rvals$con.app,
+        auto_detect_timestamps = isTRUE(input$auto_timestamps),
+        auto_detect_dates = isTRUE(input$auto_dates),
+        auto_detect_characters = isTRUE(input$convert_characters)
+      )
+      
+      rvals$con.app <- res$con.app
+      rvals$data <- res$tbl
+      rvals$filtered_data <- res$tbl
+      
+      showNotification(
+        paste0("Uploaded dataset loaded into DuckDB (",
+               ncol(df), " columns, ", nrow(df), " rows)."),
+        type = "message"
+      )
     })
     
-    # --- Metadata summary (reactive to filtering) ---
-    output$data_meta_summary <- shiny::renderUI({
-      df <- filtered_data()
+    # ---- Reactive for filtered data (DuckDB table reference) ---------------
+    filtered_data <- reactive({
+      req(rvals$filtered_data)
+      rvals$filtered_data
+    })
+    
+    # ---- Metadata summary --------------------------------------------------
+    output$data_meta_summary <- renderUI({
+      df <- filtered_data() %>% dplyr::collect()
+      req(df)
       
       meta <- data.frame(
         Variable = names(df),
@@ -109,11 +116,9 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       )
       
       meta$Unique_Values <- sapply(df, function(x) {
-        if (is.numeric(x) || is.character(x) || is.factor(x) || inherits(x, c("Date", "POSIXt"))) {
+        if (is.numeric(x) || is.character(x) || is.factor(x) || inherits(x, c("Date", "POSIXt")))
           length(unique(x))
-        } else {
-          NA
-        }
+        else NA
       })
       
       meta$Range <- sapply(df, function(x) {
@@ -122,35 +127,29 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
         } else if (inherits(x, c("Date", "POSIXct", "POSIXt"))) {
           rng <- range(x, na.rm = TRUE)
           paste0(as.character(rng[1]), " – ", as.character(rng[2]))
-        } else {
-          ""
-        }
+        } else ""
       })
       
-      shiny::tagList(
-        shiny::h4("Dataset Summary"),
-        shiny::tags$p(paste("Rows:", nrow(df), "| Columns:", ncol(df))),
-        shiny::tags$table(
+      tagList(
+        h4("Dataset Summary"),
+        tags$p(paste("Rows:", nrow(df), "| Columns:", ncol(df))),
+        tags$table(
           class = "meta-table",
-          shiny::tags$thead(
-            shiny::tags$tr(
-              shiny::tags$th("Variable"),
-              shiny::tags$th("Type"),
-              shiny::tags$th("Unique Values"),
-              shiny::tags$th("Range (if applicable)"),
-              shiny::tags$th("NAs"),
-              shiny::tags$th("Not NAs")
+          tags$thead(
+            tags$tr(
+              tags$th("Variable"), tags$th("Type"), tags$th("Unique Values"),
+              tags$th("Range (if applicable)"), tags$th("NAs"), tags$th("Not NAs")
             )
           ),
-          shiny::tags$tbody(
+          tags$tbody(
             lapply(seq_len(nrow(meta)), function(i) {
-              shiny::tags$tr(
-                shiny::tags$td(meta$Variable[i]),
-                shiny::tags$td(meta$Type[i]),
-                shiny::tags$td(meta$Unique_Values[i]),
-                shiny::tags$td(meta$Range[i]),
-                shiny::tags$td(meta$NAs[i]),
-                shiny::tags$td(meta$Not_NAs[i])
+              tags$tr(
+                tags$td(meta$Variable[i]),
+                tags$td(meta$Type[i]),
+                tags$td(meta$Unique_Values[i]),
+                tags$td(meta$Range[i]),
+                tags$td(meta$NAs[i]),
+                tags$td(meta$Not_NAs[i])
               )
             })
           )
@@ -158,107 +157,17 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       )
     })
     
-    # --- Filter handling ---
-    shiny::observeEvent(c(input$do_filter, input$do_filter_modal), {
-      shiny::removeModal()
-      df <- rvals$data
-      if (is.null(df)) {
-        shiny::showNotification("No data available to filter.", type = "warning")
-        return(NULL)
-      }
-      
-      shiny::showModal(
-        shiny::modalDialog(
-          title = "Filter Data",
-          shiny::uiOutput(ns("filter_ui")),
-          footer = shiny::tagList(
-            shiny::div(
-              style = "flex-shrink: 0;",
-              shiny::actionButton(ns("apply_filters"), "Apply Filters"),
-              shiny::actionButton(ns("cancel_filters"), "Cancel Filters")
-            )
-          ),
-          size = "l",
-          easyClose = FALSE
-        )
-      )
-      
-      output$filter_ui <- shiny::renderUI({
-        if (exists("build_filter_ui")) {
-          build_filter_ui(df, ns)
-        } else {
-          shiny::helpText("Filter UI not available. Please define build_filter_ui().")
-        }
-      })
-    })
-    
-    # --- Apply filters ---
-    shiny::observeEvent(input$apply_filters, {
-      if (exists("apply_filters")) {
-        filtered_df <- apply_filters(rvals$data, input)
-        rvals$filtered_data <- filtered_df
-        shiny::removeModal()
-        shiny::showNotification(
-          paste("Filters applied. Showing", nrow(filtered_df), "of", nrow(rvals$data), "rows."),
-          type = "message"
-        )
-      } else {
-        shiny::showNotification("apply_filters() not available.", type = "warning")
-      }
-    })
-    
-    # --- Cancel filters ---
-    shiny::observeEvent(input$cancel_filters, {
-      shiny::removeModal()
-    })
-    
-    # --- Clear filters ---
-    shiny::observeEvent(input$clear_filters, {
-      rvals$filtered_data <- rvals$data
-      shiny::showNotification("Filters cleared. Showing all rows.", type = "message")
-    })
-    
-    # --- Filter counter (optional inside modal) ---
-    output$filter_counter <- shiny::renderUI({
-      if (!is.null(rvals$data)) {
-        total <- nrow(rvals$data)
-        if (exists("apply_filters")) {
-          preview <- apply_filters(rvals$data, input)
-          current <- nrow(preview)
-        } else {
-          current <- total
-        }
-        shiny::tags$p(
-          paste0("Filtered rows: ", current, " / ", total),
-          style = "margin: 0; font-weight: bold;"
-        )
-      }
-    })
-    
-    # --- Data preview (reactive to filtering) ---
-    output$data_preview <- shiny::renderUI({
-      df <- filtered_data()
-      total <- if (!is.null(rvals$data)) nrow(rvals$data) else NA
-      filtered <- nrow(df)
-      
-      shiny::tagList(
-        shiny::h4("Data Preview"),
-        shiny::tags$p(
-          paste("Rows available:", filtered, "of", total),
-          style = "font-weight: bold; color: #2E86AB;"
-        ),
-        shiny::tableOutput(ns("data_head"))
+    # ---- Data preview ------------------------------------------------------
+    output$data_preview <- renderUI({
+      df <- filtered_data() %>% dplyr::head(10) %>% dplyr::collect()
+      tagList(
+        h4("Data Preview"),
+        tableOutput(ns("data_head"))
       )
     })
     
-    # --- Data head table ---
-    output$data_head <- shiny::renderTable({
-      df <- head(filtered_data(), 10)
-      df <- dplyr::mutate(df, dplyr::across(
-        where(~ inherits(., c("Date", "POSIXt"))),
-        ~ as.character(.)
-      ))
-      df
+    output$data_head <- renderTable({
+      filtered_data() %>% dplyr::head(10) %>% dplyr::collect()
     })
   })
 }

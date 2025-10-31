@@ -39,7 +39,11 @@
 #' @importFrom duckdb duckdb
 #' @importFrom dplyr tbl
 #' @export
-convert_to_tbl <- function(input_data, con.app = NULL, auto_detect_types = TRUE) {
+convert_to_tbl <- function(input_data, 
+                           con.app = NULL, 
+                           auto_detect_timestamps = TRUE,
+                           auto_detect_dates = TRUE,
+                           auto_detect_characters = TRUE) {
   # ---- Dependency checks ----------------------------------------------------
   if (!requireNamespace("duckdb", quietly = TRUE)) {
     stop("Package 'duckdb' is required. Please install it.")
@@ -95,7 +99,7 @@ convert_to_tbl <- function(input_data, con.app = NULL, auto_detect_types = TRUE)
   }
   
   # ---- Auto type detection -------------------------------------------------
-  if (isTRUE(auto_detect_types)) {
+  if (isTRUE(auto_detect_timestamps)) {
     # Timestamp detection
     if (exists("detect_and_convert_timestamps", mode = "function")) {
       before <- names(df)
@@ -105,7 +109,10 @@ convert_to_tbl <- function(input_data, con.app = NULL, auto_detect_types = TRUE)
         message("Detected and converted ", length(changed), " timestamp columns:\n  - ", paste(changed, collapse = "\n  - "))
       }
       df <- df_new
+    }   
     }
+  
+  if (isTRUE(auto_detect_dates)) {
     # Date detection
     if (exists("detect_and_convert_dates", mode = "function")) {
       before_classes <- sapply(df, class)
@@ -116,6 +123,9 @@ convert_to_tbl <- function(input_data, con.app = NULL, auto_detect_types = TRUE)
       }
       df <- df_new
     }
+  }
+  
+  if (isTRUE(auto_detect_characters)) {
     # Character detection
     if (exists("detect_and_convert_characters", mode = "function")) {
       before_classes <- sapply(df, class)
