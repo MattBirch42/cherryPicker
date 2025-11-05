@@ -13,41 +13,53 @@
 server_data_import <- function(id, rvals, preloaded_data = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    rvals <- reactiveValues()
+    message("=== Data Import Module Initialized ===")
+    message("preloaded_data class: ", paste(class(preloaded_data), collapse = ", "))
+    message("preloaded_data is NULL? ", is.null(preloaded_data))
     
     # ---- Initialize DuckDB connection once ---------------------------------
+    
     observe({
-      # Use isolate() only for checking existence
-      if (is.null(isolate(rvals$con.app)) || 
-          !DBI::dbIsValid(isolate(rvals$con.app))) {
-        
+      if (is.null(isolate(rvals$con.app)) || !DBI::dbIsValid(isolate(rvals$con.app))) {
         message("Initializing new DuckDB connection...")
-        rvals$con.app <- DBI::dbConnect(
-          duckdb::duckdb(),
-          dbdir = ":memory:",
-          read_only = FALSE
-        )
-        
+        rvals$con.app <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:", read_only = FALSE)
+        message("Connection object assigned. Valid? ", DBI::dbIsValid(rvals$con.app))
         showNotification("DuckDB connection established.", type = "message")
+      } else {
+        message("DuckDB connection already valid.")
       }
     })
     
+    
     # ---- Handle preloaded data --------------------------------------------
     observe({
-      # run once only
+      invalidateLater(500, session)  # check twice per second
+      
+      # Wait until connection exists and is valid
+      if (is.null(rvals$con.app) || !DBI::dbIsValid(rvals$con.app)) return()
+      
+      # Run only once
       if (!is.null(preloaded_data) && is.null(isolate(rvals$data))) {
-        message("Preloading dataset into DuckDB...")
+        message("Preloading dataset into DuckDB (delayed until connection ready)...")
         
-        res <- convert_to_tbl(
-          input_data = preloaded_data,
-          con.app = isolate(rvals$con.app),
-          auto_detect_timestamps = FALSE,
-          auto_detect_dates = FALSE,
-          auto_detect_characters = FALSE
+        # Write the preloaded data frame directly into DuckDB
+        DBI::dbWriteTable(
+          conn = rvals$con.app,
+          name = "data",
+          value = preloaded_data,
+          overwrite = TRUE,
+          temporary = FALSE
         )
         
-        rvals$con.app <- res$con.app
-        rvals$data <- res$tbl
-        rvals$filtered_data <- res$tbl
+        # Assign lazy references
+        rvals$data <- dplyr::tbl(rvals$con.app, "data")
+        rvals$filtered_data <- rvals$data
+        
+        message("Tables in DuckDB:")
+        print(DBI::dbListTables(rvals$con.app))
+        message("First few rows:")
+        print(DBI::dbGetQuery(rvals$con.app, "SELECT * FROM data LIMIT 5"))
         
         showNotification(
           paste0("Preloaded dataset loaded into DuckDB (",
@@ -58,7 +70,8 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
       }
     })
     
-    # ---- Handle user file upload ------------------------------------------
+    
+    # ---- Handle user file upload (always overwrites existing) --------------
     observeEvent(input$file, {
       req(input$file)
       ext <- tools::file_ext(input$file$name)
@@ -76,18 +89,23 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
         }
       )
       
-      # --- Always feed through convert_to_tbl() ---
-      res <- convert_to_tbl(
-        input_data = df,
-        con.app = rvals$con.app,
-        auto_detect_timestamps = isTRUE(input$auto_timestamps),
-        auto_detect_dates = isTRUE(input$auto_dates),
-        auto_detect_characters = isTRUE(input$convert_characters)
+      message("Overwriting DuckDB 'data' table with uploaded dataset...")
+      
+      # --- Write uploaded data directly into DuckDB (overwrite) ---
+      DBI::dbWriteTable(
+        conn = rvals$con.app,
+        name = "data",
+        value = df,
+        overwrite = TRUE,
+        temporary = FALSE
       )
       
-      rvals$con.app <- res$con.app
-      rvals$data <- res$tbl
-      rvals$filtered_data <- res$tbl
+      # --- Reassign lazy references (always overwrite preloaded) ---
+      rvals$data <- dplyr::tbl(rvals$con.app, "data")
+      rvals$filtered_data <- rvals$data
+      
+      message("Tables in DuckDB after upload:")
+      print(DBI::dbListTables(rvals$con.app))
       
       showNotification(
         paste0("Uploaded dataset loaded into DuckDB (",
@@ -159,7 +177,7 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
     
     # ---- Data preview ------------------------------------------------------
     output$data_preview <- renderUI({
-      df <- filtered_data() %>% dplyr::head(10) %>% dplyr::collect()
+      df <- filtered_data() %>% head(10) %>% dplyr::collect()
       tagList(
         h4("Data Preview"),
         tableOutput(ns("data_head"))
@@ -167,7 +185,7 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
     })
     
     output$data_head <- renderTable({
-      filtered_data() %>% dplyr::head(10) %>% dplyr::collect()
+      filtered_data() %>% head(10) %>% dplyr::collect()
     })
   })
 }

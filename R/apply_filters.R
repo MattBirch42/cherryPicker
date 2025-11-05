@@ -8,6 +8,8 @@
 #' @return Filtered data frame.
 #' @keywords internal
 apply_filters <- function(df, input) {
+  
+  # i NEED TO PULL FROM TBL(CON.APP,"DATA") AND PUPULATE DATA_FILTERED
   if (is.null(df) || nrow(df) == 0) return(df)
   
   keep <- rep(TRUE, nrow(df))
