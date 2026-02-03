@@ -187,5 +187,33 @@ server_data_import <- function(id, rvals, preloaded_data = NULL) {
     output$data_head <- renderTable({
       filtered_data() %>% head(10) %>% dplyr::collect()
     })
+    # ---- Filter button
+    filter_state <- reactiveValues()
+    
+    observeEvent(input$do_filter, {
+      
+      output[[ns("data_preview")]] <- shiny::renderTable({
+        first_col <- colnames(rvals$data)[1]
+        
+        dplyr::tbl(rvals$con.app, "data") %>%
+          dplyr::arrange(.data[[first_col]]) %>%
+          head(10) %>%
+          dplyr::collect()
+      })
+      
+      shiny::showModal(
+        shiny::modalDialog(
+          title = "Data Preview (First 10 Rows)",
+          shiny::tableOutput(ns("data_preview")),
+          size = "l",
+          easyClose = TRUE,
+          footer = shiny::modalButton("Close")
+        )
+      )
+      
+    }, ignoreInit = TRUE)
+    
+    
+    
   })
 }
