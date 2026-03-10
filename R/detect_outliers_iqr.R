@@ -36,34 +36,48 @@
 #' @export
 detect_outliers_iqr <- function(x, multiplier = 1.5) {
   # ---- Validate input ------------------------------------------------------
-  if (!is.numeric(x)) stop("Input 'x' must be numeric.")
+  if (!is.numeric(x)) {
+    stop("Input 'x' must be numeric.")
+  }
   if (!is.numeric(multiplier) || length(multiplier) != 1 || multiplier <= 0) {
     stop("Multiplier must be a positive numeric scalar.")
   }
-  
+
   # ---- Compute quartiles and IQR -------------------------------------------
   q1 <- stats::quantile(x, 0.25, na.rm = TRUE, names = FALSE)
   q3 <- stats::quantile(x, 0.75, na.rm = TRUE, names = FALSE)
   iqr_val <- q3 - q1
-  
+
   if (is.na(iqr_val) || iqr_val == 0) {
     warning("IQR is zero or NA; returning NA cutoffs.")
-    return(dplyr::tibble(var_name = deparse(substitute(x)), low_cutoff = NA_real_, high_cutoff = NA_real_))
+    return(dplyr::tibble(
+      var_name = deparse(substitute(x)),
+      low_cutoff = NA_real_,
+      high_cutoff = NA_real_
+    ))
   }
-  
+
   lower_limit <- q1 - multiplier * iqr_val
   upper_limit <- q3 + multiplier * iqr_val
-  
+
   # ---- Identify actual cutoff values ---------------------------------------
-  low_candidates  <- x[x < lower_limit]
+  low_candidates <- x[x < lower_limit]
   high_candidates <- x[x > upper_limit]
-  
-  low_value  <- if (length(low_candidates))  max(low_candidates, na.rm = TRUE) else NA_real_
-  high_value <- if (length(high_candidates)) min(high_candidates, na.rm = TRUE) else NA_real_
-  
+
+  low_value <- if (length(low_candidates)) {
+    max(low_candidates, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+  high_value <- if (length(high_candidates)) {
+    min(high_candidates, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+
   # ---- Return single-row tibble --------------------------------------------
   dplyr::tibble(
-    var_name   = deparse(substitute(x)),
+    var_name = deparse(substitute(x)),
     low_cutoff = low_value,
     high_cutoff = high_value
   )

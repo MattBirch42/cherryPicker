@@ -34,26 +34,40 @@
 #' @importFrom dplyr tibble
 #' @export
 detect_outliers_zscore <- function(x, threshold = 3) {
-  if (!is.numeric(x)) stop("Input 'x' must be numeric.")
+  if (!is.numeric(x)) {
+    stop("Input 'x' must be numeric.")
+  }
   if (!is.numeric(threshold) || length(threshold) != 1 || threshold <= 0) {
     stop("Threshold must be a positive numeric scalar.")
   }
-  
+
   mu <- mean(x, na.rm = TRUE)
   sigma <- sd(x, na.rm = TRUE)
   if (is.na(sigma) || sigma == 0) {
     warning("Standard deviation is zero or NA; returning NA cutoffs.")
-    return(dplyr::tibble(var_name = deparse(substitute(x)), low_cutoff = NA_real_, high_cutoff = NA_real_))
+    return(dplyr::tibble(
+      var_name = deparse(substitute(x)),
+      low_cutoff = NA_real_,
+      high_cutoff = NA_real_
+    ))
   }
-  
+
   z_scores <- (x - mu) / sigma
-  
-  low_candidates  <- x[z_scores <= -abs(threshold)]
-  high_candidates <- x[z_scores >=  abs(threshold)]
-  
-  low_value  <- if (length(low_candidates))  max(low_candidates, na.rm = TRUE) else NA_real_
-  high_value <- if (length(high_candidates)) min(high_candidates, na.rm = TRUE) else NA_real_
-  
+
+  low_candidates <- x[z_scores <= -abs(threshold)]
+  high_candidates <- x[z_scores >= abs(threshold)]
+
+  low_value <- if (length(low_candidates)) {
+    max(low_candidates, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+  high_value <- if (length(high_candidates)) {
+    min(high_candidates, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+
   dplyr::tibble(
     var_name = deparse(substitute(x)),
     low_cutoff = low_value,

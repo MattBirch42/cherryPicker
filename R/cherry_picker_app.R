@@ -5,7 +5,7 @@
 #' @param imported_data Optional data frame to skip file upload.
 #' @return A Shiny app object.
 #' @keywords internal
-#' 
+#'
 # cherry_picker_app <- function(imported_data = NULL) {
 #   shiny::shinyApp(
 #     ui = cherry_picker_ui(),
@@ -20,20 +20,24 @@
 #   )
 # }
 
-
-files <- setdiff(list.files(file.path("R")),"cherry_picker_app.R")
+files <- setdiff(list.files(file.path("R")), "cherry_picker_app.R")
 for (i in 1:length(files)) {
-  message(i," / ",length(files)," | ",files[i])
-  source(file.path("R",files[i]))
+  message(i, " / ", length(files), " | ", files[i])
+  source(file.path("R", files[i]))
 }
 
-fake.data <- fake_data(10000,42)
+fake.data <- fake_data(10000, 42)
 
 cherry_picker_app <- function(preloaded_data = NULL) {
   shiny::shinyApp(
     ui = ui_cherry_picker_main(),
     server = function(input, output, session) {
-      server_cherry_picker_main(input, output, session, preloaded_data = preloaded_data)
+      server_cherry_picker_main(
+        input,
+        output,
+        session,
+        preloaded_data = preloaded_data
+      )
     }
   )
 }

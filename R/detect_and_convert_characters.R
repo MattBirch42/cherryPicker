@@ -11,30 +11,38 @@
 #' @param session Optional Shiny session, used for displaying warnings in Shiny.
 #' @return A data frame with character columns converted to factors.
 #' @keywords internal
-detect_and_convert_characters <- function(df,
-                                                     unique_warn_threshold = 50,
-                                                     session = NULL) {
+detect_and_convert_characters <- function(
+  df,
+  unique_warn_threshold = 50,
+  session = NULL
+) {
   for (col in names(df)) {
     print(col)
     # Skip helper or list-like columns
-    if (col == ".row_uid" || is.list(df[[col]])) next
-    
+    if (col == ".row_uid" || is.list(df[[col]])) {
+      next
+    }
+
     vec <- df[[col]]
-    
+
     if (is.character(vec)) {
       unique_vals <- unique(na.omit(vec))
       nlev <- length(unique_vals)
-      
+
       # Only check threshold if there are any non-missing values
       if (nlev > 0 && nlev > unique_warn_threshold) {
-        msg <- sprintf("Column '%s' has %d unique values; converting to factor anyway.", col, nlev)
+        msg <- sprintf(
+          "Column '%s' has %d unique values; converting to factor anyway.",
+          col,
+          nlev
+        )
         if (!is.null(session)) {
           shiny::showNotification(msg, type = "warning")
         } else {
           warning(msg, call. = FALSE)
         }
       }
-      
+
       df[[col]] <- factor(vec)
     }
   }

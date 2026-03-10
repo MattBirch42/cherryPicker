@@ -46,30 +46,36 @@ detect_outliers_mahalanobis <- function(data, p_value = 0.001) {
   if (!is.data.frame(data) && !is.matrix(data)) {
     stop("Input must be a data frame or matrix.")
   }
-  if (!is.numeric(p_value) || length(p_value) != 1 || p_value <= 0 || p_value >= 1) {
+  if (
+    !is.numeric(p_value) || length(p_value) != 1 || p_value <= 0 || p_value >= 1
+  ) {
     stop("p_value must be between 0 and 1.")
   }
-  
+
   # ---- Select numeric columns ----------------------------------------------
   num_data <- data[, sapply(data, is.numeric), drop = FALSE]
-  if (ncol(num_data) == 0) stop("No numeric columns found in 'data'.")
-  if (ncol(num_data) < ncol(data)) {
-    warning("Non-numeric columns were dropped before computing Mahalanobis distances.")
+  if (ncol(num_data) == 0) {
+    stop("No numeric columns found in 'data'.")
   }
-  
+  if (ncol(num_data) < ncol(data)) {
+    warning(
+      "Non-numeric columns were dropped before computing Mahalanobis distances."
+    )
+  }
+
   # ---- Compute Mahalanobis distances ---------------------------------------
   center <- colMeans(num_data, na.rm = TRUE)
   cov_matrix <- stats::cov(num_data, use = "pairwise.complete.obs")
-  
+
   # Ensure covariance matrix is invertible
   if (det(cov_matrix) == 0) {
     warning("Covariance matrix is singular; results may be unreliable.")
   }
-  
+
   d2 <- stats::mahalanobis(num_data, center, cov_matrix)
   cutoff <- stats::qchisq(1 - p_value, df = ncol(num_data))
   is_outlier <- d2 > cutoff
-  
+
   # ---- Return structured output --------------------------------------------
   list(
     summary = dplyr::tibble(

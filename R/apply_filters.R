@@ -8,18 +8,21 @@
 #' @return Filtered data frame.
 #' @keywords internal
 apply_filters <- function(df, input) {
-  
   # i NEED TO PULL FROM TBL(CON.APP,"DATA") AND PUPULATE DATA_FILTERED
-  if (is.null(df) || nrow(df) == 0) return(df)
-  
+  if (is.null(df) || nrow(df) == 0) {
+    return(df)
+  }
+
   keep <- rep(TRUE, nrow(df))
-  
+
   # 1. Apply value/range filters first
   for (col in names(df)) {
-    if (col == ".row_uid") next
-    v  <- df[[col]]
+    if (col == ".row_uid") {
+      next
+    }
+    v <- df[[col]]
     id <- paste0("filter_", col)
-    
+
     if (!is.null(input[[id]])) {
       if (inherits(v, "Date")) {
         dr <- input[[id]]
@@ -39,17 +42,21 @@ apply_filters <- function(df, input) {
       }
     }
   }
-  
+
   # 2. Identify which columns have "Exclude NA" toggled
   exclude_cols <- names(df)[
-    vapply(names(df), function(col) {
-      id <- paste0("exclude_na_", col)
-      isTRUE(input[[id]])
-    }, logical(1))
+    vapply(
+      names(df),
+      function(col) {
+        id <- paste0("exclude_na_", col)
+        isTRUE(input[[id]])
+      },
+      logical(1)
+    )
   ]
-  
-  print(paste0("exclude_cols = ",exclude_cols))
-  
+
+  print(paste0("exclude_cols = ", exclude_cols))
+
   # 3. Drop any rows with NA in *any* of those columns
   if (length(exclude_cols) > 0) {
     df <- df %>%
@@ -58,6 +65,6 @@ apply_filters <- function(df, input) {
       )
     keep <- rep(TRUE, nrow(df))
   }
-  
+
   df[keep, , drop = FALSE]
 }

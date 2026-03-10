@@ -9,16 +9,16 @@
 #' @keywords internal
 # build_filter_ui <- function(df, ns) {
 #   ui_list <- list()
-#   
+#
 #   for (col in names(df)) {
 #     if (col == ".row_uid") next
 #     v <- df[[col]]
 #     na_pct <- round(mean(is.na(v)) * 100, 1)
 #     label <- sprintf("%s (%s, %s%% NA)", col, paste(class(v), collapse = "/"), na_pct)
-#     
+#
 #     # Construct the filter input itself
 #     filter_input <- NULL
-#     
+#
 #     if (inherits(v, "Date") || inherits(v, "POSIXt")) {
 #       rng <- range(as.Date(v), na.rm = TRUE)
 #       if (is.finite(rng[1]) && is.finite(rng[2])) {
@@ -30,7 +30,7 @@
 #           width   = "100%"
 #         )
 #       }
-#       
+#
 #     } else if (is.numeric(v)) {
 #       vmin <- suppressWarnings(min(v, na.rm = TRUE))
 #       vmax <- suppressWarnings(max(v, na.rm = TRUE))
@@ -43,7 +43,7 @@
 #           width = "100%"
 #         )
 #       }
-#       
+#
 #     } else {
 #       vals <- sort(unique(v))
 #       vals <- vals[!is.na(vals)]
@@ -64,7 +64,7 @@
 #         )
 #       }
 #     }
-#     
+#
 #     # Add the NA toggle checkbox next to it
 #     na_checkbox <- shiny::checkboxInput(
 #       inputId = ns(paste0("exclude_na_", col)),
@@ -72,22 +72,21 @@
 #       value = FALSE,
 #       width = "100%"
 #     )
-#     
+#
 #     # Combine into a single row
 #     ui_list[[col]] <- shiny::fluidRow(
 #       shiny::column(width = 9, filter_input),
 #       shiny::column(width = 3, style = "margin-top: 28px;", na_checkbox)
 #     )
 #   }
-#   
+#
 #   shiny::tagList(ui_list)
 # }
 build_filter_ui <- function(con, table, ns) {
-  
   preview_df <- tbl(rvals$con.app, "data") %>%
     head(10) %>%
     collect()
-  
+
   tagList(
     tableOutput(ns("data_preview"))
   )

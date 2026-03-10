@@ -12,7 +12,9 @@
 ui_cherry_picker <- function(imported_data = NULL) {
   shiny::fluidPage(
     shiny::h4("Cherry Picker (placeholder)"),
-    shiny::helpText("Interactive data selection and visualization will go here.")
+    shiny::helpText(
+      "Interactive data selection and visualization will go here."
+    )
   )
 }
 

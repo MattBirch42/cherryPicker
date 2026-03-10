@@ -13,22 +13,32 @@
 #' @keywords internal
 detect_and_convert_dates <- function(df, session = NULL) {
   fmt_candidates <- c("ymd", "mdy", "dmy", "Ymd", "Y/m/d", "m/d/Y", "d/m/Y")
-  
+
   for (col in names(df)) {
-    if (col == ".row_uid") next
+    if (col == ".row_uid") {
+      next
+    }
     vec <- df[[col]]
     if (is.character(vec)) {
       sample_vals <- head(na.omit(vec), 10)
       if (length(sample_vals) > 0) {
         for (fmt in fmt_candidates) {
-          parsed <- suppressWarnings(lubridate::parse_date_time(sample_vals, orders = fmt))
+          parsed <- suppressWarnings(lubridate::parse_date_time(
+            sample_vals,
+            orders = fmt
+          ))
           if (sum(!is.na(parsed)) >= 5) {
-            parsed_full <- suppressWarnings(lubridate::parse_date_time(vec, orders = fmt))
+            parsed_full <- suppressWarnings(lubridate::parse_date_time(
+              vec,
+              orders = fmt
+            ))
             # Excel fallback if NA remain
             if (any(is.na(parsed_full))) {
               nums <- suppressWarnings(as.numeric(vec))
               excel_dates <- as.Date(nums, origin = "1899-12-30")
-              parsed_full[is.na(parsed_full) & !is.na(excel_dates)] <- excel_dates[is.na(parsed_full) & !is.na(excel_dates)]
+              parsed_full[
+                is.na(parsed_full) & !is.na(excel_dates)
+              ] <- excel_dates[is.na(parsed_full) & !is.na(excel_dates)]
             }
             df[[col]] <- as.Date(parsed_full)
             break

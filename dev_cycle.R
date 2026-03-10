@@ -1,7 +1,11 @@
 # dev_cycle.R
 # Full package dev cycle: document -> build -> install -> check -> git commit/push
 remove.packages("cherryPicker")
-unlink(file.path(Sys.getenv("R_LIBS_USER"), "cherryPicker"), recursive = TRUE, force = TRUE)
+unlink(
+  file.path(Sys.getenv("R_LIBS_USER"), "cherryPicker"),
+  recursive = TRUE,
+  force = TRUE
+)
 
 library(devtools)
 
@@ -22,10 +26,9 @@ if (nzchar(commit_msg)) {
 }
 system("git push")
 
-
 # rsconnect::accounts()
 # setwd("C:/Users/mbirch/Documents/cherryPicker_support")
-# 
+#
 # rsconnect::deployApp(
 #   appDir = ".",                     # current directory
 #   appName = "cherryPicker",          # pick an app name

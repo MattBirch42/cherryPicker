@@ -43,53 +43,59 @@
 #' @importFrom DBI dbExecute dbExistsTable
 #' @importFrom dplyr tbl
 #' @export
-aggregate_duckdb <- function(con.app,
-                             exclude_set = NULL,
-                             group_list = NULL,
-                             target_list = NULL,
-                             aggregator_list = NULL) {
-  
+aggregate_duckdb <- function(
+  con.app,
+  exclude_set = NULL,
+  group_list = NULL,
+  target_list = NULL,
+  aggregator_list = NULL
+) {
   # ---- Validate input ------------------------------------------------------
   if (is.null(con.app) || !DBI::dbIsValid(con.app)) {
     stop("Please provide a valid DuckDB connection (con.app).")
   }
-  
+
   if (is.null(target_list) || is.null(aggregator_list)) {
     stop("Both target_list and aggregator_list must be provided.")
   }
-  
+
   if (length(target_list) != length(aggregator_list)) {
     stop("target_list and aggregator_list must be the same length.")
   }
-  
+
   # ---- Validate aggregators ------------------------------------------------
   valid_aggs <- c("mean", "min", "max", "sum", "stddev", "count")
   bad_aggs <- setdiff(aggregator_list, valid_aggs)
   if (length(bad_aggs) > 0) {
-    stop("Unsupported aggregators: ", paste(bad_aggs, collapse = ", "),
-         ". Valid options are: ", paste(valid_aggs, collapse = ", "), ".")
+    stop(
+      "Unsupported aggregators: ",
+      paste(bad_aggs, collapse = ", "),
+      ". Valid options are: ",
+      paste(valid_aggs, collapse = ", "),
+      "."
+    )
   }
-  
+
   # ---- Construct WHERE clause ----------------------------------------------
   where_clause <- ""
   if (!is.null(exclude_set) && length(exclude_set) > 0) {
     id_values <- paste0(exclude_set, collapse = ", ")
     where_clause <- paste0("WHERE .id NOT IN (", id_values, ")")
   }
-  
+
   # ---- Construct GROUP BY clause -------------------------------------------
   group_clause <- ""
   if (!is.null(group_list) && length(group_list) > 0) {
     group_clause <- paste("GROUP BY", paste(group_list, collapse = ", "))
   }
-  
+
   # ---- Build SELECT clause -------------------------------------------------
   group_select <- if (!is.null(group_list) && length(group_list) > 0) {
     paste(group_list, collapse = ", ")
   } else {
     ""
   }
-  
+
   agg_selects <- vapply(
     seq_along(target_list),
     function(i) {
@@ -99,9 +105,9 @@ aggregate_duckdb <- function(con.app,
     },
     FUN.VALUE = character(1)
   )
-  
+
   select_clause <- paste(c(group_select, agg_selects), collapse = ", ")
-  
+
   # ---- Final SQL query -----------------------------------------------------
   query <- sprintf(
     "
@@ -115,13 +121,13 @@ aggregate_duckdb <- function(con.app,
     where_clause,
     group_clause
   )
-  
+
   # ---- Execute in DuckDB ---------------------------------------------------
   DBI::dbExecute(con.app, query)
-  
+
   # ---- Return reference ----------------------------------------------------
   tbl_ref <- dplyr::tbl(con.app, "data_agg")
-  
+
   message("Aggregation completed and saved to DuckDB table 'data_agg'.")
   list(query = query, tbl = tbl_ref)
 }
