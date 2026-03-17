@@ -17,7 +17,6 @@ cherry_picker_basic_ui <- function() {
       "Visualization",
       shiny::sidebarLayout(
         shiny::sidebarPanel(
-
           # Selection counter (always visible)
           shiny::div(
             style = "margin-bottom: 15px;",
@@ -37,12 +36,18 @@ cherry_picker_basic_ui <- function() {
               shiny::sliderInput(
                 "x_bins",
                 "X histogram bins:",
-                min = 5, max = 100, value = 30, step = 1
+                min = 5,
+                max = 100,
+                value = 30,
+                step = 1
               ),
               shiny::sliderInput(
                 "y_bins",
                 "Y histogram bins:",
-                min = 5, max = 100, value = 30, step = 1
+                min = 5,
+                max = 100,
+                value = 30,
+                step = 1
               ),
               shiny::div(
                 style = "margin-top: 5px;",

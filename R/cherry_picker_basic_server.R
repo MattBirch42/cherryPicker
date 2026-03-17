@@ -11,7 +11,6 @@
 #' @keywords internal
 cherry_picker_basic_server <- function(preloaded_data) {
   function(input, output, session) {
-
     # ----------------------------------------------------------
     # Initialise global export list if not already present
     # ----------------------------------------------------------
@@ -37,8 +36,8 @@ cherry_picker_basic_server <- function(preloaded_data) {
     # removed_ids:  marked for removal on the Export tab
     # ----------------------------------------------------------
     selected_ids <- shiny::reactiveVal(integer(0))
-    saved_ids    <- shiny::reactiveVal(integer(0))
-    removed_ids  <- shiny::reactiveVal(integer(0))
+    saved_ids <- shiny::reactiveVal(integer(0))
+    removed_ids <- shiny::reactiveVal(integer(0))
 
     # ----------------------------------------------------------
     # Downstream reactive: full data with all three flags attached
@@ -46,8 +45,8 @@ cherry_picker_basic_server <- function(preloaded_data) {
     data_with_flags <- shiny::reactive({
       df <- raw_df
       df$selected <- df$.row_uid %in% selected_ids()
-      df$saved    <- df$.row_uid %in% saved_ids()
-      df$removed  <- df$.row_uid %in% removed_ids()
+      df$saved <- df$.row_uid %in% saved_ids()
+      df$removed <- df$.row_uid %in% removed_ids()
       df
     })
 
@@ -57,24 +56,38 @@ cherry_picker_basic_server <- function(preloaded_data) {
     last_xvar <- shiny::reactiveVal(NULL)
     last_yvar <- shiny::reactiveVal(NULL)
 
-    shiny::observeEvent(input$xvar, { last_xvar(input$xvar) })
-    shiny::observeEvent(input$yvar, { last_yvar(input$yvar) })
+    shiny::observeEvent(input$xvar, {
+      last_xvar(input$xvar)
+    })
+    shiny::observeEvent(input$yvar, {
+      last_yvar(input$yvar)
+    })
 
     shiny::observe({
       choices <- setdiff(names(raw_df), ".row_uid")
       shiny::updateSelectInput(
-        session, "xvar",
+        session,
+        "xvar",
         choices = choices,
         selected = if (!is.null(last_xvar()) && last_xvar() %in% choices) {
           last_xvar()
-        } else if (length(choices) > 0) choices[1] else NULL
+        } else if (length(choices) > 0) {
+          choices[1]
+        } else {
+          NULL
+        }
       )
       shiny::updateSelectInput(
-        session, "yvar",
+        session,
+        "yvar",
         choices = choices,
         selected = if (!is.null(last_yvar()) && last_yvar() %in% choices) {
           last_yvar()
-        } else if (length(choices) > 1) choices[2] else choices[1]
+        } else if (length(choices) > 1) {
+          choices[2]
+        } else {
+          choices[1]
+        }
       )
     })
 
@@ -84,7 +97,10 @@ cherry_picker_basic_server <- function(preloaded_data) {
     color_var <- shiny::reactiveVal(NULL)
 
     shiny::observeEvent(input$add_color, {
-      choices <- setdiff(names(raw_df), c(".row_uid", "selected", "saved", "removed"))
+      choices <- setdiff(
+        names(raw_df),
+        c(".row_uid", "selected", "saved", "removed")
+      )
       meta_info <- lapply(choices, function(v) {
         vals <- raw_df[[v]]
         if (is.numeric(vals)) {
@@ -99,13 +115,18 @@ cherry_picker_basic_server <- function(preloaded_data) {
       shiny::showModal(shiny::modalDialog(
         title = "Choose a Color Variable",
         shiny::selectInput(
-          "colorvar_choice", "Available variables",
+          "colorvar_choice",
+          "Available variables",
           choices = stats::setNames(choices, meta_info),
           width = "100%"
         ),
         footer = shiny::tagList(
           shiny::modalButton("Cancel"),
-          shiny::actionButton("confirm_color", "Apply Color", class = "btn-primary")
+          shiny::actionButton(
+            "confirm_color",
+            "Apply Color",
+            class = "btn-primary"
+          )
         ),
         easyClose = TRUE
       ))
@@ -122,14 +143,14 @@ cherry_picker_basic_server <- function(preloaded_data) {
     output$scatter <- plotly::renderPlotly({
       shiny::req(input$xvar, input$yvar)
       make_marginal_scatter(
-        df          = raw_df,
-        xvar        = input$xvar,
-        yvar        = input$yvar,
-        nbins_x       = input$x_bins,
-        nbins_y       = input$y_bins,
+        df = raw_df,
+        xvar = input$xvar,
+        yvar = input$yvar,
+        nbins_x = input$x_bins,
+        nbins_y = input$y_bins,
         highlight_ids = selected_ids(),
-        remove_ids    = removed_ids(),
-        colorvar      = color_var()
+        remove_ids = removed_ids(),
+        colorvar = color_var()
       )
     })
 
@@ -137,7 +158,8 @@ cherry_picker_basic_server <- function(preloaded_data) {
     # Plotly selection events -> selected_ids (additive, no dupes)
     # ----------------------------------------------------------
     shiny::observeEvent(
-      plotly::event_data("plotly_click", source = "scatterplot"), {
+      plotly::event_data("plotly_click", source = "scatterplot"),
+      {
         ed <- plotly::event_data("plotly_click", source = "scatterplot")
         if (!is.null(ed$customdata)) {
           ids <- as.integer(unlist(ed$customdata))
@@ -147,7 +169,8 @@ cherry_picker_basic_server <- function(preloaded_data) {
     )
 
     shiny::observeEvent(
-      plotly::event_data("plotly_selected", source = "scatterplot"), {
+      plotly::event_data("plotly_selected", source = "scatterplot"),
+      {
         ed <- plotly::event_data("plotly_selected", source = "scatterplot")
         if (!is.null(ed$customdata)) {
           ids <- as.integer(unlist(ed$customdata))
@@ -163,7 +186,8 @@ cherry_picker_basic_server <- function(preloaded_data) {
       saved_ids(unique(union(saved_ids(), selected_ids())))
       shiny::showNotification(
         paste0(length(saved_ids()), " rows saved."),
-        type = "message", duration = 3
+        type = "message",
+        duration = 3
       )
     })
 
@@ -186,18 +210,31 @@ cherry_picker_basic_server <- function(preloaded_data) {
     # Selection counter (Visualization tab)
     # ----------------------------------------------------------
     output$selection_counter <- shiny::renderUI({
-      total    <- nrow(raw_df)
-      n_saved  <- length(saved_ids())
-      n_sel    <- length(selected_ids())
+      total <- nrow(raw_df)
+      n_saved <- length(saved_ids())
+      n_sel <- length(selected_ids())
       n_unsaved <- length(setdiff(selected_ids(), saved_ids()))
-      n_rem    <- length(removed_ids())
-      pct      <- if (total > 0) (n_saved / total) * 100 else 0
-      color    <- if (pct < 1) "green" else if (pct < 5) "orange" else "red"
+      n_rem <- length(removed_ids())
+      pct <- if (total > 0) (n_saved / total) * 100 else 0
+      color <- if (pct < 1) {
+        "green"
+      } else if (pct < 5) {
+        "orange"
+      } else {
+        "red"
+      }
 
       shiny::tagList(
         shiny::tags$p(
-          paste0("Saved: ", n_saved, " / ", total,
-                 " (", sprintf("%.2f", pct), "%)"),
+          paste0(
+            "Saved: ",
+            n_saved,
+            " / ",
+            total,
+            " (",
+            sprintf("%.2f", pct),
+            "%)"
+          ),
           style = paste0("font-weight: bold; color: ", color, "; margin: 0;")
         ),
         shiny::tags$p(
@@ -217,10 +254,10 @@ cherry_picker_basic_server <- function(preloaded_data) {
     output$export_counter <- shiny::renderUI({
       total <- nrow(raw_df)
       shiny::tagList(
-        shiny::tags$p(paste0("Total rows: ",   total)),
-        shiny::tags$p(paste0("Saved:       ",  length(saved_ids()))),
-        shiny::tags$p(paste0("Selected:    ",  length(selected_ids()))),
-        shiny::tags$p(paste0("Removed:     ",  length(removed_ids())))
+        shiny::tags$p(paste0("Total rows: ", total)),
+        shiny::tags$p(paste0("Saved:       ", length(saved_ids()))),
+        shiny::tags$p(paste0("Selected:    ", length(selected_ids()))),
+        shiny::tags$p(paste0("Removed:     ", length(removed_ids())))
       )
     })
 
@@ -245,8 +282,11 @@ cherry_picker_basic_server <- function(preloaded_data) {
       shiny::showModal(shiny::modalDialog(
         title = "Add a comment (optional)",
         shiny::textAreaInput(
-          input_id, "Comment", "",
-          width = "100%", rows = 3,
+          input_id,
+          "Comment",
+          "",
+          width = "100%",
+          rows = 3,
           placeholder = "Optional description for this export"
         ),
         footer = shiny::tagList(
@@ -264,19 +304,27 @@ cherry_picker_basic_server <- function(preloaded_data) {
       sel <- selected_ids()
       df_out <- raw_df[raw_df$.row_uid %in% sel, , drop = FALSE]
       show_comment_modal(
-        "comment_keep", "confirm_export_keep",
+        "comment_keep",
+        "confirm_export_keep",
         function(comment) {
           .append_to_export_list(df_out, comment, "selected_keep")
-          shiny::showNotification("Exported to cherry_picker_export_list", type = "message")
+          shiny::showNotification(
+            "Exported to cherry_picker_export_list",
+            type = "message"
+          )
         }
       )
     })
 
-    shiny::observeEvent(input$confirm_export_keep, {
-      shiny::removeModal()
-      fn <- export_callback()
-      if (!is.null(fn)) fn(input$comment_keep)
-    }, ignoreInit = TRUE)
+    shiny::observeEvent(
+      input$confirm_export_keep,
+      {
+        shiny::removeModal()
+        fn <- export_callback()
+        if (!is.null(fn)) fn(input$comment_keep)
+      },
+      ignoreInit = TRUE
+    )
 
     # ----------------------------------------------------------
     # Export selected to R — mark as removed
@@ -285,22 +333,28 @@ cherry_picker_basic_server <- function(preloaded_data) {
       sel <- selected_ids()
       df_out <- raw_df[raw_df$.row_uid %in% sel, , drop = FALSE]
       show_comment_modal(
-        "comment_remove", "confirm_export_remove",
+        "comment_remove",
+        "confirm_export_remove",
         function(comment) {
           .append_to_export_list(df_out, comment, "selected_remove")
           removed_ids(unique(union(removed_ids(), sel)))
           shiny::showNotification(
-            "Exported and marked as removed", type = "message"
+            "Exported and marked as removed",
+            type = "message"
           )
         }
       )
     })
 
-    shiny::observeEvent(input$confirm_export_remove, {
-      shiny::removeModal()
-      fn <- export_callback()
-      if (!is.null(fn)) fn(input$comment_remove)
-    }, ignoreInit = TRUE)
+    shiny::observeEvent(
+      input$confirm_export_remove,
+      {
+        shiny::removeModal()
+        fn <- export_callback()
+        if (!is.null(fn)) fn(input$comment_remove)
+      },
+      ignoreInit = TRUE
+    )
 
     # ----------------------------------------------------------
     # Export full data with flags to R
@@ -308,19 +362,27 @@ cherry_picker_basic_server <- function(preloaded_data) {
     shiny::observeEvent(input$export_full_r, {
       df_out <- data_with_flags()
       show_comment_modal(
-        "comment_full_r", "confirm_export_full_r",
+        "comment_full_r",
+        "confirm_export_full_r",
         function(comment) {
           .append_to_export_list(df_out, comment, "full_with_flags")
-          shiny::showNotification("Full data exported to cherry_picker_export_list", type = "message")
+          shiny::showNotification(
+            "Full data exported to cherry_picker_export_list",
+            type = "message"
+          )
         }
       )
     })
 
-    shiny::observeEvent(input$confirm_export_full_r, {
-      shiny::removeModal()
-      fn <- export_callback()
-      if (!is.null(fn)) fn(input$comment_full_r)
-    }, ignoreInit = TRUE)
+    shiny::observeEvent(
+      input$confirm_export_full_r,
+      {
+        shiny::removeModal()
+        fn <- export_callback()
+        if (!is.null(fn)) fn(input$comment_full_r)
+      },
+      ignoreInit = TRUE
+    )
 
     # ----------------------------------------------------------
     # CSV: selected rows
@@ -381,10 +443,10 @@ cherry_picker_basic_server <- function(preloaded_data) {
 .append_to_export_list <- function(data, comment, type) {
   lst <- get("cherry_picker_export_list", envir = .GlobalEnv)
   lst[[length(lst) + 1]] <- list(
-    data    = data,
+    data = data,
     comment = substr(comment, 1, 256),
-    type    = type,
-    time    = Sys.time()
+    type = type,
+    time = Sys.time()
   )
   assign("cherry_picker_export_list", lst, envir = .GlobalEnv)
 }

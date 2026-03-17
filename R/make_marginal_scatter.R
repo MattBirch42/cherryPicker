@@ -3,8 +3,8 @@
 #' Builds a scatter plot with marginal histograms for the selected x and y
 #' variables. Handles numeric, date/time, and factor/character axes gracefully.
 #' Allows persistent highlighting of selected points. Missing values are
-#' displayed beyond the axis range with a dotted separator line, custom "NA"
-#' tick label, and a faint shaded rectangle (overlapping zones are darker).
+#' displayed beyond the axis range with a dotted separator line and custom "NA"
+#' tick label.
 #'
 #' @param df Data frame containing the data to plot.
 #' @param xvar Name of the variable to use on the x-axis.
@@ -128,7 +128,6 @@ make_marginal_scatter <- function(
   plot_df[[xvar]] <- x_imp$col
   plot_df[[yvar]] <- y_imp$col
 
-  # Keep character as factor
   if (is.character(plot_df[[xvar]])) {
     plot_df[[xvar]] <- as.factor(plot_df[[xvar]])
   }
@@ -146,7 +145,6 @@ make_marginal_scatter <- function(
     if (!imp$has_na || is.null(imp$na_pos)) {
       return(base)
     }
-
     if (is.numeric(col_vals)) {
       real_vals <- col_vals[col_vals < imp$line_pos]
       real_rng <- range(real_vals, na.rm = TRUE)
@@ -161,91 +159,8 @@ make_marginal_scatter <- function(
         list(tickmode = "array", tickvals = tick_vals, ticktext = tick_text)
       )
     } else {
-      base # categorical: factor levels already include "(NA)"
+      base
     }
-  }
-
-  # ----------------------------------------------------------
-  # Shapes: dotted separator lines + shaded NA rectangles
-  #
-  # Three possible rectangles (all layer = "below"):
-  #   1. X NA strip    : vertical band on right  (xref="x3", yref="paper")
-  #   2. Y NA strip    : horizontal band on top  (xref="paper", yref="y3")
-  #   3. Overlap corner: stacked on top of both  (xref="x3", yref="y3")
-  #      doubles opacity naturally, making it visibly darker
-  # ----------------------------------------------------------
-  na_shapes <- list()
-  na_fill <- "rgba(100, 100, 200, 0.08)"
-
-  if (x_imp$has_na && !is.null(x_imp$line_pos)) {
-    na_shapes[[length(na_shapes) + 1]] <- list(
-      type = "rect",
-      xref = "x3",
-      yref = "paper",
-      x0 = x_imp$line_pos,
-      x1 = x_imp$na_pos * 1.05,
-      y0 = 0,
-      y1 = 1,
-      fillcolor = na_fill,
-      line = list(width = 0),
-      layer = "below"
-    )
-    na_shapes[[length(na_shapes) + 1]] <- list(
-      type = "line",
-      xref = "x3",
-      yref = "paper",
-      x0 = x_imp$line_pos,
-      x1 = x_imp$line_pos,
-      y0 = 0,
-      y1 = 1,
-      line = list(color = "gray50", width = 1.5, dash = "dot")
-    )
-  }
-
-  if (y_imp$has_na && !is.null(y_imp$line_pos)) {
-    na_shapes[[length(na_shapes) + 1]] <- list(
-      type = "rect",
-      xref = "paper",
-      yref = "y3",
-      x0 = 0,
-      x1 = 1,
-      y0 = y_imp$line_pos,
-      y1 = y_imp$na_pos * 1.05,
-      fillcolor = na_fill,
-      line = list(width = 0),
-      layer = "below"
-    )
-    na_shapes[[length(na_shapes) + 1]] <- list(
-      type = "line",
-      xref = "paper",
-      yref = "y3",
-      x0 = 0,
-      x1 = 1,
-      y0 = y_imp$line_pos,
-      y1 = y_imp$line_pos,
-      line = list(color = "gray50", width = 1.5, dash = "dot")
-    )
-  }
-
-  # Overlap corner: second rect stacked on top — doubles opacity
-  if (
-    x_imp$has_na &&
-      !is.null(x_imp$line_pos) &&
-      y_imp$has_na &&
-      !is.null(y_imp$line_pos)
-  ) {
-    na_shapes[[length(na_shapes) + 1]] <- list(
-      type = "rect",
-      xref = "x3",
-      yref = "y3",
-      x0 = x_imp$line_pos,
-      x1 = x_imp$na_pos * 1.05,
-      y0 = y_imp$line_pos,
-      y1 = y_imp$na_pos * 1.05,
-      fillcolor = na_fill,
-      line = list(width = 0),
-      layer = "below"
-    )
   }
 
   # ----------------------------------------------------------
@@ -260,7 +175,6 @@ make_marginal_scatter <- function(
       numeric_vals <- if (is.numeric(vals)) vals else as.numeric(vals)
       rng_num <- range(numeric_vals, na.rm = TRUE)
       rng_label <- range(vals, na.rm = TRUE)
-
       scatter <- plotly::plot_ly(
         data = plot_df,
         x = ~ .data[[xvar]],
@@ -289,7 +203,6 @@ make_marginal_scatter <- function(
       if (nlev <= 10) {
         pal <- RColorBrewer::brewer.pal(max(3, nlev), "Set2")
         scatter <- plotly::plot_ly(showlegend = TRUE)
-
         for (i in seq_len(nlev)) {
           lev <- levels(plot_df[[colorvar]])[i]
           df_sub <- plot_df[plot_df[[colorvar]] == lev, ]
@@ -307,7 +220,6 @@ make_marginal_scatter <- function(
               customdata = ~.row_uid
             )
         }
-
         scatter <- scatter |>
           plotly::layout(
             showlegend = TRUE,
@@ -379,6 +291,40 @@ make_marginal_scatter <- function(
           showlegend = FALSE
         )
     }
+  }
+
+  # ----------------------------------------------------------
+  # Dotted NA separator lines added as segments directly onto
+  # scatter — these survive subplot() unlike layout shapes.
+  # ----------------------------------------------------------
+  if (x_imp$has_na && !is.null(x_imp$line_pos)) {
+    y_range <- range(plot_df[[yvar]], na.rm = TRUE)
+    scatter <- scatter |>
+      plotly::add_segments(
+        x = x_imp$line_pos,
+        xend = x_imp$line_pos,
+        y = y_range[1],
+        yend = y_range[2],
+        line = list(color = "gray50", width = 1.5, dash = "dot"),
+        inherit = FALSE,
+        showlegend = FALSE,
+        hoverinfo = "none"
+      )
+  }
+
+  if (y_imp$has_na && !is.null(y_imp$line_pos)) {
+    x_range <- range(plot_df[[xvar]], na.rm = TRUE)
+    scatter <- scatter |>
+      plotly::add_segments(
+        x = x_range[1],
+        xend = x_range[2],
+        y = y_imp$line_pos,
+        yend = y_imp$line_pos,
+        line = list(color = "gray50", width = 1.5, dash = "dot"),
+        inherit = FALSE,
+        showlegend = FALSE,
+        hoverinfo = "none"
+      )
   }
 
   # ----------------------------------------------------------
@@ -474,7 +420,7 @@ make_marginal_scatter <- function(
   # Subplot layout
   # Slot 1 = top_hist   -> xaxis,  yaxis
   # Slot 2 = empty      -> xaxis2, yaxis2
-  # Slot 3 = scatter    -> xaxis3, yaxis3  <-- titles + NA ticks + shapes
+  # Slot 3 = scatter    -> xaxis3, yaxis3  <-- titles + NA ticks
   # Slot 4 = right_hist -> xaxis4, yaxis4
   # ----------------------------------------------------------
   x_axis_settings <- .build_na_axis(x_imp, plot_df[[xvar]], xvar)
@@ -494,7 +440,6 @@ make_marginal_scatter <- function(
   ) |>
     plotly::layout(
       dragmode = "select",
-      shapes = if (length(na_shapes) > 0) na_shapes else NULL,
       xaxis3 = x_axis_settings,
       yaxis3 = y_axis_settings
     ) |>
